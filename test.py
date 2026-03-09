@@ -3,6 +3,9 @@ import subprocess
 import time
 import argparse
 
+_timestamp = int(time.time() * 100)
+
+
 def run_debugging_session(serial, package):
     """
     Runs a debugging session using the LLDB Python API.
@@ -32,7 +35,7 @@ def run_debugging_session(serial, package):
 
     # Connect to the remote platform on the lldb-server.
     platform_connect_options = lldb.SBPlatformConnectOptions(
-        f'unix-abstract-connect://[{serial}]/{package}-0/platform-156393867851.sock')
+        f'unix-abstract-connect://[{serial}]/{package}-0/platform-{_timestamp}.sock')
     print(f'Connecting to URL: {platform_connect_options.GetURL()}')
     connect_error = platform.ConnectRemote(platform_connect_options)
     if connect_error.Fail():
@@ -49,7 +52,7 @@ def run_debugging_session(serial, package):
     pid = 0
     for i in range(0, processes.GetSize()):
       info = lldb.SBProcessInfo()
-      if processes.GetProcessInfoAtIndex(i, info) and info.GetName() in ['app_process64', 'com.example.hellojni']:
+      if processes.GetProcessInfoAtIndex(i, info) and info.GetName() in ['app_process64', 'app_process32', 'com.example.hellojni']:
           pid = info.GetProcessID()
           print(f'Match, process: {info.GetName()}')
       else:
@@ -176,9 +179,22 @@ def get_pid():
   return 1234
 
 
-def install_apk():
-  print('Installing APK: [not implemented]...')
-  pass
+def build_testapp():
+  """Builds the test app using gradlew."""
+  print('Building test app...')
+  cmd = ['./gradlew', 'assembleDebug']
+  subprocess.run(cmd, cwd='testapp', check=True)
+
+
+def install_apk(android_abi):
+  """Uninstalls the previous version and installs the ABI-specific APK."""
+  package = 'com.example.testapp'
+  print(f'Uninstalling {package}...')
+  subprocess.run(['adb', 'uninstall', package], check=False) # OK if not installed
+
+  apk_path = f'testapp/app/build/outputs/apk/debug/app-{android_abi}-debug.apk'
+  print(f'Installing APK: {apk_path}...')
+  subprocess.run(['adb', 'install', '-r', apk_path], check=True)
 
 
 def run_as(serial, package, cmd):
@@ -200,7 +216,7 @@ def launch_lldb_server(serial, package):
       f'/data/data/{package}/lldb',
       'unix-abstract',
       f'/{package}-0',
-      'platform-156393867851.sock',
+      f'platform-{_timestamp}.sock',
       '\'lldb process:gdb-remote packets\''
   ]
   process = run_as(serial, package, cmd)
@@ -274,10 +290,10 @@ def kill_lldb_server(serial, package):
 
 def main(args):
   serial = get_serial(args.android_abi)
-  # package = 'com.example.myapplication'
-  package = 'com.example.hellojni'
-  activity = f'{package}/{package}.MainActivity'
-  install_apk()
+  package = 'com.example.testapp'
+  activity = f'{package}/.MainActivity'
+  build_testapp()
+  install_apk(args.android_abi)
   launch_app(serial, package, activity)
   kill_lldb_server(serial, package)
   push_lldb_server(serial, package, args.android_abi)
