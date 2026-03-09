@@ -52,7 +52,7 @@ def run_debugging_session(serial, package):
     pid = 0
     for i in range(0, processes.GetSize()):
       info = lldb.SBProcessInfo()
-      if processes.GetProcessInfoAtIndex(i, info) and info.GetName() in ['app_process64', 'app_process32', 'com.example.hellojni']:
+      if processes.GetProcessInfoAtIndex(i, info) and info.GetName() in ['app_process64', 'app_process32', 'com.example.testapp']:
           pid = info.GetProcessID()
           print(f'Match, process: {info.GetName()}')
       else:
