@@ -6,12 +6,14 @@ import argparse
 _timestamp = int(time.time() * 100)
 
 
-def run_debugging_session(serial, package):
+def run_debugging_session(serial, package, android_abi):
     """
     Runs a debugging session using the LLDB Python API.
 
     Args:
         serial: The serial of the Android device to connect to.
+        package: The package name of the app.
+        android_abi: The ABI of the target device.
     """
     # Create a new debugger instance.
     debugger = lldb.SBDebugger.Create()
@@ -19,8 +21,7 @@ def run_debugging_session(serial, package):
         print('Error: Failed to create SBDebugger.')
         return
 
-    # Tell the debugger to be in synchronous mode.
-    # This means commands will block until they are finished.
+    # Tell the debugger to be in synchronous mode by default for connection tasks.
     debugger.SetAsync(False)
 
     # Select and set the platform to 'remote-android'.
@@ -75,7 +76,14 @@ def run_debugging_session(serial, package):
       print(f"Error creating target: {error.GetCString()}")
       exit(1)
 
-    print(f'Attaching to process {pid}...')
+    # Set search paths for symbols before attaching
+    symbol_dir = f'testapp/app/build/intermediates/merged_native_libs/debug/mergeDebugNativeLibs/out/lib/{android_abi}'
+    print(f'Adding symbol search path: {symbol_dir}')
+    debugger.HandleCommand(f'settings append target.exec-search-paths {symbol_dir}')
+
+    # Use asynchronous mode for attach and subsequent operations to capture state events.
+    debugger.SetAsync(True)
+    print(f'Attaching to process {pid} (async)...')
     attach_info = lldb.SBAttachInfo()
     attach_info.SetProcessID(pid)
     error = lldb.SBError()
@@ -88,32 +96,111 @@ def run_debugging_session(serial, package):
 
     wait_for_stop(debugger.GetListener(), process, 10)
 
-    print('Getting stack backtrace')
-    debugger.HandleCommand('bt')
+    # Set breakpoint at native-lib.cpp:12
+    print('Setting breakpoint at native-lib.cpp:12...')
+    breakpoint = target.BreakpointCreateByLocation('native-lib.cpp', 12)
+    
+    num_locations = breakpoint.GetNumLocations()
+    num_resolved = breakpoint.GetNumResolvedLocations()
+    print(f'Breakpoint locations: {num_locations}, Resolved: {num_resolved}')
 
-    # TODO:
-    #print('Continuing process')
-    #process.Continue()
-    #print('Sleeping for 2 seconds')
-    #time.sleep(2)
-    #process.Stop()
-    #wait_for_stop(debugger.GetListener(), process, 10)
+    if num_locations == 0:
+        print('Error: Failed to set breakpoint at native-lib.cpp:12 (no locations found)')
+        exit(1)
+
+    if num_resolved == 0:
+        print('Error: Breakpoint at native-lib.cpp:12 not resolved!')
+        exit(1)
+
+    # Continue process and wait for breakpoint
+    print('Continuing process (async)...')
+    process.Continue()
+    # In async mode, we need to wait for the events on the listener
+    print(f'Waiting for breakpoint to be hit (timeout 100s)...')
+    wait_for_stop(debugger.GetListener(), process, 100)
+
+    # Verify stop reason and location
+    thread = process.GetSelectedThread()
+    stop_reason = thread.GetStopReason()
+    if stop_reason != lldb.eStopReasonBreakpoint:
+        print(f'Error: Expected breakpoint stop reason, got {lldb.SBDebugger.StateAsCString(process.GetState())} stop reason: {stop_reason}')
+        exit(1)
+
+    frame = thread.GetSelectedFrame()
+    line_entry = frame.GetLineEntry()
+    filename = line_entry.GetFileSpec().GetFilename()
+    line = line_entry.GetLine()
+    print(f'Stopped at {filename}:{line}')
+
+    if filename != 'native-lib.cpp' or line != 12:
+        print(f'Error: Stopped at unexpected location {filename}:{line}, expected native-lib.cpp:12')
+        exit(1)
+
+    # Print stack trace using API
+    print('Stack trace at breakpoint:')
+    for i in range(thread.GetNumFrames()):
+        f = thread.GetFrameAtIndex(i)
+        print(f'  Frame #{i}: {f}')
+
+    # Verify top frame function name
+    top_frame = thread.GetFrameAtIndex(0)
+    func_name = top_frame.GetFunctionName()
+    print(f'Top frame function: {func_name}')
+    expected_func = 'Java_com_example_testapp_MainActivity_stringFromJNI'
+    if expected_func not in func_name:
+        print(f'Error: Unexpected top frame function: {func_name}, expected to contain {expected_func}')
+        exit(1)
+
+    # Verify local variable "buffer"
+    print('Verifying local variable "buffer"...')
+    buffer_var = frame.FindVariable('buffer')
+    if not buffer_var.IsValid():
+        print('Error: Failed to find local variable "buffer"')
+        exit(1)
+
+    buffer_type = buffer_var.GetType().GetName()
+    print(f'Variable "buffer" type: {buffer_type}')
+    if buffer_type not in ['char [128]', 'char[128]']:
+        print(f'Error: Unexpected type for "buffer": {buffer_type}, expected "char [128]" or "char[128]"')
+        exit(1)
+
+    summary = buffer_var.GetSummary()
+    print(f'Variable "buffer" value: {summary}')
+    if not summary or 'Hello from C++' not in summary:
+        print(f'Error: Unexpected value for "buffer": {summary}, expected prefix "Hello from C++"')
+        exit(1)
+
+    print('Successfully verified "buffer" variable type and value')
+    print('Successfully verified breakpoint hit at native-lib.cpp:12')
 
     print('Test finished. Exiting.')
 
 def wait_for_stop(listener, process, timeout_seconds):
   event = lldb.SBEvent()
-  # Loop until the process is Running/Suspended or timeout.
-  for i in range(timeout_seconds):
-    listener.WaitForEvent(1, event) # Wait up to 1 second per loop iteration
-    if event.IsValid() and lldb.SBProcess.EventIsProcessEvent(event):
-      # We got a process event, check the state
-      state_enum = process.GetState()
-      print(f'Process state after waiting: {lldb.SBDebugger.StateAsCString(state_enum)}')
-      if state_enum == lldb.eStateStopped:
-        return
-      time.sleep(1)
-  print('Timed out while waiting for process to reach stopped state')
+  # Loop until the process is Stopped or timeout.
+  start_time = time.time()
+  while time.time() - start_time < timeout_seconds:
+    if listener.WaitForEvent(1, event):
+      if lldb.SBProcess.EventIsProcessEvent(event):
+        state_enum = lldb.SBProcess.GetStateFromEvent(event)
+        print(f'Process state event: {lldb.SBDebugger.StateAsCString(state_enum)}')
+        if state_enum == lldb.eStateStopped:
+          return
+        elif state_enum == lldb.eStateExited:
+          print(f'Error: Process exited with status {process.GetExitStatus()}')
+          exit(1)
+        elif state_enum == lldb.eStateCrashed:
+          print('Error: Process crashed!')
+          exit(1)
+  
+  print(f'Timed out while waiting for process to reach stopped state (waited {timeout_seconds}s)')
+  print(f'Current process state: {lldb.SBDebugger.StateAsCString(process.GetState())}')
+  for i in range(process.GetNumThreads()):
+    thread = process.GetThreadAtIndex(i)
+    print(f'Thread {i}: {thread.GetName()}, Stop Reason: {thread.GetStopReason()}')
+    if thread.GetStopReason() != lldb.eStopReasonNone:
+        for j in range(min(5, thread.GetNumFrames())):
+            print(f'  Frame #{j}: {thread.GetFrameAtIndex(j)}')
   exit(1)
 
 
@@ -300,7 +387,7 @@ def main(args):
   process = launch_lldb_server(serial, package)
   try:
     print('This is where the debug session will start')
-    run_debugging_session(serial, package)
+    run_debugging_session(serial, package, args.android_abi)
     # time.sleep(1000)
   finally:
     print('Killing all lldb-server processes on device')
