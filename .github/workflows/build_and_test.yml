@@ -6,6 +6,8 @@ on:
     # Runs every day at 11:00 AM PDT (7 hours behind UTC)
     # This corresponds to 18:00 UTC.
     - cron: '0 18 * * *'
+  # Allows manual running from the Actions tab
+  workflow_dispatch:
 
 
 jobs:
