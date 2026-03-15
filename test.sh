@@ -22,6 +22,8 @@ PYTHON="${PYTHON_DIR}/bin/python3"
 # We set PYTHONPATH this way so that Python can execute `import lldb`
 export PYTHONPATH=$("${LLDB}" -P)
 
+echo "Using JAVA_HOME=$JAVA_HOME"
+
 "$PYTHON" test.py --android_abi="${ANDROID_ABI}"
 
 
