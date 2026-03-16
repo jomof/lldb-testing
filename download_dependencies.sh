@@ -27,3 +27,12 @@ if [[ ! -d "${NDK_DIR}" ]]; then
   rm android-ndk-r28c-linux.zip
 fi
 
+JDK_DIR=jdk
+if [[ ! -d "${JDK_DIR}" ]]; then
+  # Download and extract
+  curl -L "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse?project=jdk" -o jdk.tar.gz
+  mkdir -p ${JDK_DIR}
+  tar -xzf jdk.tar.gz -C ${JDK_DIR} --strip-components=1
+  rm jdk.tar.gz
+fi
+

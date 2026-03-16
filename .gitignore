@@ -1,4 +1,5 @@
 cmake/
 ndk/
+jdk/
 build-*/
 /.idea/

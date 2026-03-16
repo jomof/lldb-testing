@@ -12,6 +12,7 @@ set -ex
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 ANDROID_NDK_HOME="${SCRIPT_DIR}/ndk/android-ndk-r28c"
+JAVA_HOME="${SCRIPT_DIR}/jdk"
 
 LLDB="${SCRIPT_DIR}/build-linux-x86_64/install/bin/lldb"
 chmod +x "${LLDB}"
@@ -21,8 +22,6 @@ PYTHON="${PYTHON_DIR}/bin/python3"
 
 # We set PYTHONPATH this way so that Python can execute `import lldb`
 export PYTHONPATH=$("${LLDB}" -P)
-
-echo "Using JAVA_HOME=$JAVA_HOME"
 
 "$PYTHON" test.py --android_abi="${ANDROID_ABI}"
 
