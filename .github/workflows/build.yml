@@ -21,6 +21,9 @@ jobs:
     - name: Download dependencies
       run: ./download_dependencies.sh
 
+    - name: Install LibEdit
+      run: sudo apt-get install -y libedit-dev
+
     # Build
 
     - name: Build LLDB for host
