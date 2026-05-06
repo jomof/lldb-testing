@@ -15,6 +15,8 @@ NINJA="${SCRIPT_DIR}/cmake/3.22.1/bin/ninja"
 ANDROID_NDK_HOME="${SCRIPT_DIR}/ndk/android-ndk-r28c"
 PYTHON_DIR="${SCRIPT_DIR}/python3.11"
 
+PREBUILTS_DIR="${SCRIPT_DIR}/prebuilts"
+
 CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-Release}"
 
 BUILD_DIR="${SCRIPT_DIR}/build-linux-x86_64"
@@ -36,10 +38,21 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DPython3_LIBRARIES="${PYTHON_DIR}/lib/libpython3.11.so" \
   -DPython3_INCLUDE_DIRS="${PYTHON_DIR}/include/python3.11" \
   -DPython3_EXECUTABLE="${PYTHON_DIR}/bin/python3" \
-  -DLLDB_ENABLE_LIBEDIT=1 \
+  -DLLDB_ENABLE_LIBEDIT=OFF \
   -DLLDB_ENABLE_CURSES=0 \
+  -DLLVM_ENABLE_LIBXML2=OFF \
+  -DLLDB_ENABLE_LIBXML2=OFF \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM" \
   -DLLVM_HOST_TRIPLE="x86_64-unknown-linux-gnu" \
+  -DCMAKE_SYSROOT="${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot" \
+  -DCMAKE_C_COMPILER="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
+  -DCMAKE_CXX_COMPILER="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
+  -DLLVM_ENABLE_LIBCXX=ON \
+  -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+  -DCMAKE_C_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
+  -DCMAKE_CXX_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
+  -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
+  -DCMAKE_SHARED_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 
 pushd "${OUT_DIR}"
@@ -47,7 +60,6 @@ time "${NINJA}" lldb
 
 echo "Installing LLDB to ${INSTALL_DIR}"
 time "${NINJA}" tools/lldb/install
-cp "${PYTHON_DIR}/lib/libpython3.11.so.1.0" "${INSTALL_DIR}/lib/"
 
 echo ""
 echo "=============================="
