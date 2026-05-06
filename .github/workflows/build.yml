@@ -55,6 +55,9 @@ jobs:
         name: lldb-dependencies
         path: prebuilts/
 
+    - name: Restore Executable Permissions
+      run: find prebuilts/ -type f -path "*/bin/*" -exec chmod +x {} +
+
     - name: Build LLDB for host
       run: |
         chmod +x download_dependencies.sh build_lldb.sh
@@ -82,6 +85,9 @@ jobs:
       with:
         name: lldb-dependencies
         path: prebuilts/
+
+    - name: Restore Executable Permissions
+      run: find prebuilts/ -type f -path "*/bin/*" -exec chmod +x {} +
 
     - name: Build lldb-server for Android arm64
       run: |
@@ -113,6 +119,9 @@ jobs:
         name: lldb-dependencies
         path: prebuilts/
 
+    - name: Restore Executable Permissions
+      run: find prebuilts/ -type f -path "*/bin/*" -exec chmod +x {} +
+
     - name: Build lldb-server for Android arm32
       run: |
         chmod +x build_lldb_server.sh
@@ -142,6 +151,9 @@ jobs:
       with:
         name: lldb-dependencies
         path: prebuilts/
+
+    - name: Restore Executable Permissions
+      run: find prebuilts/ -type f -path "*/bin/*" -exec chmod +x {} +
 
     - name: Build lldb-server for Android x86_64
       run: |

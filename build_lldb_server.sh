@@ -13,9 +13,11 @@ set -x
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # Cross compiling
-CMAKE="${SCRIPT_DIR}/cmake/3.22.1/bin/cmake"
-NINJA="${SCRIPT_DIR}/cmake/3.22.1/bin/ninja"
-ANDROID_NDK_HOME="${SCRIPT_DIR}/ndk/android-ndk-r28c"
+PREBUILTS_DIR="${SCRIPT_DIR}/prebuilts"
+
+CMAKE="${PREBUILTS_DIR}/cmake/3.22.1/bin/cmake"
+NINJA="${PREBUILTS_DIR}/cmake/3.22.1/bin/ninja"
+ANDROID_NDK_HOME="${PREBUILTS_DIR}/ndk/android-ndk-r28c"
 
 ANDROID_PLATFORM=android-24
 
@@ -58,7 +60,7 @@ pushd "${OUT_DIR}"
 time "${NINJA}" lldb-server
 
 echo "Stripping lldb-server binary to reduce size"
-"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip bin/lldb-server"
+"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" bin/lldb-server
 
 echo ""
 echo "=============================="
