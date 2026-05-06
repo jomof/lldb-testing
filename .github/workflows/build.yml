@@ -22,12 +22,7 @@ jobs:
       id: cache-dependencies
       uses: actions/cache@v4
       with:
-        path: |
-          cmake/
-          ndk/
-          jdk/
-          python3.11/
-          prebuilts/
+        path: prebuilts/
         key: ${{ runner.os }}-dependencies-${{ hashFiles('download_dependencies.sh') }}
 
     - name: Download dependencies
@@ -39,12 +34,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: lldb-dependencies
-        path: |
-          cmake/
-          ndk/
-          jdk/
-          python3.11/
-          prebuilts/
+        path: prebuilts/
         if-no-files-found: 'error'
 
   # Job 2: Build LLDB Host Binary in Parallel
