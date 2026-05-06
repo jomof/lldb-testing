@@ -38,8 +38,13 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DPython3_LIBRARIES="${PYTHON_DIR}/lib/libpython3.11.so" \
   -DPython3_INCLUDE_DIRS="${PYTHON_DIR}/include/python3.11" \
   -DPython3_EXECUTABLE="${PYTHON_DIR}/bin/python3" \
-  -DLLDB_ENABLE_LIBEDIT=OFF \
-  -DLLDB_ENABLE_CURSES=0 \
+  -DLLDB_ENABLE_LIBEDIT=ON \
+  -DLibEdit_INCLUDE_DIRS="${PREBUILTS_DIR}/libedit/include" \
+  -DLibEdit_LIBRARIES="${PREBUILTS_DIR}/libedit/lib/libedit.a" \
+  -DLLDB_ENABLE_CURSES=ON \
+  -DCURSES_INCLUDE_DIRS="${PREBUILTS_DIR}/ncurses/include;${PREBUILTS_DIR}/ncurses/include/ncursesw" \
+  -DCURSES_LIBRARIES="${PREBUILTS_DIR}/ncurses/lib/libncursesw.a" \
+  -DPANEL_LIBRARIES="${PREBUILTS_DIR}/ncurses/lib/libpanelw.a" \
   -DLLVM_ENABLE_LIBXML2=OFF \
   -DLLDB_ENABLE_LIBXML2=OFF \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM" \
@@ -51,8 +56,8 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
   -DCMAKE_C_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
   -DCMAKE_CXX_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
-  -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
-  -DCMAKE_SHARED_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
+  -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
+  -DCMAKE_SHARED_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 
 pushd "${OUT_DIR}"

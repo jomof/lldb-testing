@@ -5,11 +5,10 @@ on:
   # Allows manual running from the Actions tab
   workflow_dispatch:
 
-
 jobs:
-  build:
+  # Job 1: Setup and Download Dependencies (relies on Caching)
+  setup:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v5
       with:
@@ -18,27 +17,57 @@ jobs:
     - name: Install SWIG
       run: sudo apt-get update && sudo apt-get install -y swig
 
+    # Cache the dependencies folder across workflow runs to avoid re-downloading/re-building dependencies
+    - name: Cache Dependencies
+      id: cache-dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          cmake/
+          ndk/
+          jdk/
+          python3.11/
+          prebuilts/
+        key: ${{ runner.os }}-dependencies-${{ hashFiles('download_dependencies.sh') }}
+
     - name: Download dependencies
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
       run: ./download_dependencies.sh
 
-    - name: Install LibEdit
-      run: sudo apt-get install -y libedit-dev
+    # Pack and upload dependencies so parallel build jobs can download them instantly
+    - name: Upload Dependencies Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lldb-dependencies
+        path: |
+          cmake/
+          ndk/
+          jdk/
+          python3.11/
+          prebuilts/
+        if-no-files-found: 'error'
 
-    # Build
+  # Job 2: Build LLDB Host Binary in Parallel
+  build-host:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+
+    - name: Install SWIG
+      run: sudo apt-get update && sudo apt-get install -y swig
+
+    - name: Download Dependencies Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: lldb-dependencies
 
     - name: Build LLDB for host
-      run: ./build_lldb.sh
-
-    - name: Build lldb-server for Android arm64
-      run: ANDROID_ABI=arm64-v8a ./build_lldb_server.sh
-
-    - name: Build lldb-server for Android arm32
-      run: ANDROID_ABI=armeabi-v7a ./build_lldb_server.sh
-
-    - name: Build lldb-server for Android x86_64
-      run: ANDROID_ABI=x86_64 ./build_lldb_server.sh
-
-    # Upload
+      run: |
+        chmod +x download_dependencies.sh build_lldb.sh
+        ./build_lldb.sh
 
     - name: Upload LLDB for host
       uses: actions/upload-artifact@v4
@@ -47,12 +76,50 @@ jobs:
         path: build-linux-x86_64/install/
         if-no-files-found: 'error'
 
+  # Job 3: Build lldb-server for Android arm64
+  build-android-arm64:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+
+    - name: Download Dependencies Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: lldb-dependencies
+
+    - name: Build lldb-server for Android arm64
+      run: |
+        chmod +x build_lldb_server.sh
+        ANDROID_ABI=arm64-v8a ./build_lldb_server.sh
+
     - name: Upload lldb-server for Android arm64
       uses: actions/upload-artifact@v4
       with:
         name: lldb-server-arm64-${{ github.run_id }}
         path: build-arm64-v8a/out/bin/lldb-server
         if-no-files-found: 'error'
+
+  # Job 4: Build lldb-server for Android arm32
+  build-android-arm32:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+
+    - name: Download Dependencies Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: lldb-dependencies
+
+    - name: Build lldb-server for Android arm32
+      run: |
+        chmod +x build_lldb_server.sh
+        ANDROID_ABI=armeabi-v7a ./build_lldb_server.sh
 
     - name: Upload lldb-server for Android arm32
       uses: actions/upload-artifact@v4
@@ -61,13 +128,28 @@ jobs:
         path: build-armeabi-v7a/out/bin/lldb-server
         if-no-files-found: 'error'
 
+  # Job 5: Build lldb-server for Android x86_64
+  build-android-x86_64:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+
+    - name: Download Dependencies Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: lldb-dependencies
+
+    - name: Build lldb-server for Android x86_64
+      run: |
+        chmod +x build_lldb_server.sh
+        ANDROID_ABI=x86_64 ./build_lldb_server.sh
+
     - name: Upload lldb-server for Android x86_64
       uses: actions/upload-artifact@v4
       with:
         name: lldb-server-x86_64-${{ github.run_id }}
         path: build-x86_64/out/bin/lldb-server
         if-no-files-found: 'error'
-
-
-
-

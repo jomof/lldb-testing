@@ -58,4 +58,50 @@ if [[ ! -d "${PREBUILTS_DIR}/clang/clang-r536225" ]]; then
   popd
 fi
 
+# 3. Download and build static ncurses (ncursesw) compiled for glibc 2.17 with -fPIC
+NCURSES_DIR="${PREBUILTS_DIR}/ncurses"
+if [[ ! -d "${NCURSES_DIR}/lib" ]]; then
+  echo "Downloading and building static ncursesw..."
+  wget --progress=dot:giga https://ftp.gnu.org/pub/gnu/ncurses/ncurses-6.4.tar.gz
+  tar -xzf ncurses-6.4.tar.gz
+  pushd ncurses-6.4
+
+  # Configure with our glibc 2.17 sysroot & prebuilt clang compiler
+  CC="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
+  CXX="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
+  CFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
+  CXXFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
+  LDFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
+  ./configure --host=x86_64-linux --prefix="${NCURSES_DIR}" \
+    --enable-static --disable-shared --with-shared=no --with-normal=yes \
+    --without-progs --without-tests --with-termlib --enable-widec --with-ticlib
+
+  make -j$(nproc)
+  make install
+  popd
+  rm -rf ncurses-6.4.tar.gz ncurses-6.4
+fi
+
+# 4. Download and build static libedit compiled for glibc 2.17 with -fPIC
+LIBEDIT_DIR="${PREBUILTS_DIR}/libedit"
+if [[ ! -d "${LIBEDIT_DIR}/lib" ]]; then
+  echo "Downloading and building static libedit..."
+  wget --progress=dot:giga https://sources.buildroot.net/libedit/libedit-20221030-3.1.tar.gz
+  tar -xzf libedit-20221030-3.1.tar.gz
+  pushd libedit-20221030-3.1
+
+  # Configure pointing to our compiled ncurses library for termcap symbols
+  CC="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
+  CXX="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
+  CFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -I${NCURSES_DIR}/include -I${NCURSES_DIR}/include/ncursesw" \
+  CXXFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -I${NCURSES_DIR}/include -I${NCURSES_DIR}/include/ncursesw" \
+  LDFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib -L${NCURSES_DIR}/lib" \
+  ./configure --host=x86_64-linux --prefix="${LIBEDIT_DIR}" --enable-static --disable-shared
+
+  make -j$(nproc)
+  make install
+  popd
+  rm -rf libedit-20221030-3.1.tar.gz libedit-20221030-3.1
+fi
+
 

@@ -3,3 +3,4 @@ ndk/
 jdk/
 build-*/
 /.idea/
+prebuilts/
