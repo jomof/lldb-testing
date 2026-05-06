@@ -13,6 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 PREBUILTS_DIR="${SCRIPT_DIR}/prebuilts"
 mkdir -p "${PREBUILTS_DIR}"
+pushd "${PREBUILTS_DIR}"
 
 CMAKE_DIR="${PREBUILTS_DIR}/cmake/3.22.1"
 if [[ ! -d "${CMAKE_DIR}" ]]; then
@@ -103,5 +104,6 @@ if [[ ! -d "${LIBEDIT_DIR}/lib" ]]; then
   popd
   rm -rf libedit-20221030-3.1.tar.gz libedit-20221030-3.1
 fi
+popd
 
 
