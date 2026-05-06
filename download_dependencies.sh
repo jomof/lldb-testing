@@ -44,6 +44,7 @@ fi
 if [[ ! -d "${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" ]]; then
   echo "Cloning GCC glibc 2.17 sysroot..."
   git clone --depth 1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8 "${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8"
+  rm -rf "${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/.git"
 fi
 
 # 2. Download Clang compiler prebuilt (clang-r536225) via sparse checkout
@@ -57,6 +58,7 @@ if [[ ! -d "${PREBUILTS_DIR}/clang/clang-r536225" ]]; then
   echo "clang-r536225/*" >> .git/info/sparse-checkout
   git pull --depth 1 origin master
   popd
+  rm -rf "${PREBUILTS_DIR}/clang/.git"
 fi
 
 # 3. Download and build static ncurses (ncursesw) compiled for glibc 2.17 with -fPIC
