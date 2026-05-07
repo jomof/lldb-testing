@@ -31,6 +31,7 @@ jobs:
 
     # Pack and upload dependencies so parallel build jobs can download them instantly
     - name: Upload Dependencies Artifact
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
       uses: actions/upload-artifact@v4
       with:
         name: lldb-dependencies
@@ -49,7 +50,15 @@ jobs:
     - name: Install SWIG
       run: sudo apt-get update && sudo apt-get install -y swig
 
+    - name: Cache Dependencies
+      id: cache-dependencies
+      uses: actions/cache@v4
+      with:
+        path: prebuilts/
+        key: ${{ runner.os }}-dependencies-${{ hashFiles('download_dependencies.sh') }}
+
     - name: Download Dependencies Artifact
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
       uses: actions/download-artifact@v4
       with:
         name: lldb-dependencies
@@ -80,7 +89,15 @@ jobs:
       with:
         submodules: true
 
+    - name: Cache Dependencies
+      id: cache-dependencies
+      uses: actions/cache@v4
+      with:
+        path: prebuilts/
+        key: ${{ runner.os }}-dependencies-${{ hashFiles('download_dependencies.sh') }}
+
     - name: Download Dependencies Artifact
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
       uses: actions/download-artifact@v4
       with:
         name: lldb-dependencies
@@ -113,7 +130,15 @@ jobs:
       with:
         submodules: true
 
+    - name: Cache Dependencies
+      id: cache-dependencies
+      uses: actions/cache@v4
+      with:
+        path: prebuilts/
+        key: ${{ runner.os }}-dependencies-${{ hashFiles('download_dependencies.sh') }}
+
     - name: Download Dependencies Artifact
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
       uses: actions/download-artifact@v4
       with:
         name: lldb-dependencies
@@ -146,7 +171,15 @@ jobs:
       with:
         submodules: true
 
+    - name: Cache Dependencies
+      id: cache-dependencies
+      uses: actions/cache@v4
+      with:
+        path: prebuilts/
+        key: ${{ runner.os }}-dependencies-${{ hashFiles('download_dependencies.sh') }}
+
     - name: Download Dependencies Artifact
+      if: steps.cache-dependencies.outputs.cache-hit != 'true'
       uses: actions/download-artifact@v4
       with:
         name: lldb-dependencies
