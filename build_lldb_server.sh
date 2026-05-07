@@ -27,6 +27,8 @@ elif [[ "$ANDROID_ABI" == "armeabi-v7a" ]]; then
   LLVM_HOST_TRIPLE=arm-unknown-linux-androideabi
 elif [[ "$ANDROID_ABI" == "x86_64" ]]; then
   LLVM_HOST_TRIPLE=x86_64-unknown-linux-android
+elif [[ "$ANDROID_ABI" == "riscv64" ]]; then
+  LLVM_HOST_TRIPLE=riscv64-unknown-linux-android
 else
   echo "Invalid ANDROID_ABI=$ANDROID_ABI"
   exit 1
