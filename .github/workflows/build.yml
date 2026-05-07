@@ -7,7 +7,7 @@ on:
 
 jobs:
   # Job 1: Setup and Download Dependencies (relies on Caching)
-  setup:
+  setup-linux-x86_64:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -40,7 +40,7 @@ jobs:
 
   # Job 2: Build LLDB Host Binary in Parallel
   build-linux-x86-64:
-    needs: setup
+    needs: setup-linux-x86_64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -88,7 +88,7 @@ jobs:
 
   # Job 3: Build lldb-server for Android arm64
   build-android-arm64:
-    needs: setup
+    needs: setup-linux-x86_64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -133,7 +133,7 @@ jobs:
 
   # Job 4: Build lldb-server for Android arm32
   build-android-arm32:
-    needs: setup
+    needs: setup-linux-x86_64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -178,7 +178,7 @@ jobs:
 
   # Job 5: Build lldb-server for Android x86_64
   build-android-x86_64:
-    needs: setup
+    needs: setup-linux-x86_64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -222,7 +222,7 @@ jobs:
         if-no-files-found: 'error'
 
   build-android-riscv64:
-    needs: setup
+    needs: setup-linux-x86_64
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -266,7 +266,6 @@ jobs:
         if-no-files-found: 'error'
 
   build-windows-x86-64:
-    needs: setup
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v5
