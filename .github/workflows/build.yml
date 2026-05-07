@@ -303,15 +303,8 @@ jobs:
         if-no-files-found: 'error'
 
   build-macos:
-    name: build-darwin-${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - arch: arm64
-            os: macos-latest
-          - arch: x86_64
-            os: macos-13
+    name: build-darwin-arm64
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v5
       with:
@@ -325,23 +318,23 @@ jobs:
     - name: Setup ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: ${{ runner.os }}-${{ matrix.arch }}-ccache
+        key: ${{ runner.os }}-arm64-ccache
         max-size: 2G
 
     - name: Install Dependencies
       run: brew install swig zstd
 
-    - name: Build LLDB for macOS (${{ matrix.arch }})
+    - name: Build LLDB for macOS (arm64)
       run: |
         chmod +x build_lldb_macos.sh
-        MACOS_ARCH=${{ matrix.arch }} ./build_lldb_macos.sh
-        tar -czf llvm-darwin-${{ matrix.arch }}.tar.gz -C build-macos-${{ matrix.arch }}/install .
+        MACOS_ARCH=arm64 ./build_lldb_macos.sh
+        tar -czf llvm-darwin-arm64.tar.gz -C build-macos-arm64/install .
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: llvm-darwin-${{ matrix.arch }}
-        path: llvm-darwin-${{ matrix.arch }}.tar.gz
+        name: llvm-darwin-arm64
+        path: llvm-darwin-arm64.tar.gz
         if-no-files-found: 'error'
 
   # Job 6: Create and Publish GitHub Release (triggers only on tag push)
@@ -389,11 +382,6 @@ jobs:
       with:
         name: llvm-darwin-arm64
 
-    - name: Download MacOS x86_64 Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: llvm-darwin-x86_64
-
     - name: Publish Release Assets
       uses: softprops/action-gh-release@v2
       with:
@@ -405,6 +393,5 @@ jobs:
           llvm-android-riscv64.tar.gz
           llvm-windows-x86_64.zip
           llvm-darwin-arm64.tar.gz
-          llvm-darwin-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
