@@ -265,9 +265,39 @@ jobs:
         path: llvm-android-riscv64.tar.gz
         if-no-files-found: 'error'
 
+  build-windows-x86-64:
+    needs: setup
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+
+    - name: Setup ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: ${{ runner.os }}-windows-ccache
+        max-size: 2G
+
+    - name: Install SWIG
+      run: choco install swig -y
+
+    - name: Build LLDB for Windows
+      run: powershell ./build_lldb.ps1
+
+    - name: Compress Artifact
+      run: Compress-Archive -Path build-windows-x86_64/install/* -DestinationPath llvm-windows-x86_64.zip
+
+    - name: Upload LLDB for Windows
+      uses: actions/upload-artifact@v4
+      with:
+        name: llvm-windows-x86_64
+        path: llvm-windows-x86_64.zip
+        if-no-files-found: 'error'
+
   # Job 6: Create and Publish GitHub Release (triggers only on tag push)
   release:
-    needs: [build-linux-x86-64, build-android-arm64, build-android-arm32, build-android-x86_64, build-android-riscv64]
+    needs: [build-linux-x86-64, build-android-arm64, build-android-arm32, build-android-x86_64, build-android-riscv64, build-windows-x86-64]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -300,6 +330,11 @@ jobs:
       with:
         name: llvm-android-riscv64
 
+    - name: Download Windows Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: llvm-windows-x86_64
+
     - name: Publish Release Assets
       uses: softprops/action-gh-release@v2
       with:
@@ -309,5 +344,6 @@ jobs:
           llvm-android-arm.tar.gz
           llvm-android-x86_64.tar.gz
           llvm-android-riscv64.tar.gz
+          llvm-windows-x86_64.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
