@@ -303,7 +303,11 @@ jobs:
         if-no-files-found: 'error'
 
   build-macos:
+    name: build-darwin-${{ matrix.arch }}
     runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
     steps:
     - uses: actions/checkout@v5
       with:
@@ -317,35 +321,23 @@ jobs:
     - name: Setup ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
-        key: ${{ runner.os }}-ccache
+        key: ${{ runner.os }}-${{ matrix.arch }}-ccache
         max-size: 2G
 
     - name: Install SWIG
       run: brew install swig
 
-    - name: Build for ARM64
+    - name: Build LLDB for macOS (${{ matrix.arch }})
       run: |
         chmod +x build_lldb_macos.sh
-        MACOS_ARCH=arm64 ./build_lldb_macos.sh
-        tar -czf llvm-darwin-arm64.tar.gz -C build-macos-arm64/install .
+        MACOS_ARCH=${{ matrix.arch }} ./build_lldb_macos.sh
+        tar -czf llvm-darwin-${{ matrix.arch }}.tar.gz -C build-macos-${{ matrix.arch }}/install .
 
-    - name: Build for x86_64
-      run: |
-        MACOS_ARCH=x86_64 ./build_lldb_macos.sh
-        tar -czf llvm-darwin-x86_64.tar.gz -C build-macos-x86_64/install .
-
-    - name: Upload ARM64 Artifact
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: llvm-darwin-arm64
-        path: llvm-darwin-arm64.tar.gz
-        if-no-files-found: 'error'
-
-    - name: Upload x86_64 Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: llvm-darwin-x86_64
-        path: llvm-darwin-x86_64.tar.gz
+        name: llvm-darwin-${{ matrix.arch }}
+        path: llvm-darwin-${{ matrix.arch }}.tar.gz
         if-no-files-found: 'error'
 
   # Job 6: Create and Publish GitHub Release (triggers only on tag push)
