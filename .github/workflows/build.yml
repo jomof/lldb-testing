@@ -302,9 +302,55 @@ jobs:
         path: llvm-windows-x86_64.zip
         if-no-files-found: 'error'
 
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: true
+
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Setup ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: ${{ runner.os }}-ccache
+        max-size: 2G
+
+    - name: Install SWIG
+      run: brew install swig
+
+    - name: Build for ARM64
+      run: |
+        chmod +x build_lldb_macos.sh
+        MACOS_ARCH=arm64 ./build_lldb_macos.sh
+        tar -czf llvm-darwin-arm64.tar.gz -C build-macos-arm64/install .
+
+    - name: Build for x86_64
+      run: |
+        MACOS_ARCH=x86_64 ./build_lldb_macos.sh
+        tar -czf llvm-darwin-x86_64.tar.gz -C build-macos-x86_64/install .
+
+    - name: Upload ARM64 Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: llvm-darwin-arm64
+        path: llvm-darwin-arm64.tar.gz
+        if-no-files-found: 'error'
+
+    - name: Upload x86_64 Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: llvm-darwin-x86_64
+        path: llvm-darwin-x86_64.tar.gz
+        if-no-files-found: 'error'
+
   # Job 6: Create and Publish GitHub Release (triggers only on tag push)
   release:
-    needs: [build-linux-x86-64, build-android-arm64, build-android-arm32, build-android-x86_64, build-android-riscv64, build-windows-x86-64]
+    needs: [build-linux-x86-64, build-android-arm64, build-android-arm32, build-android-x86_64, build-android-riscv64, build-windows-x86-64, build-macos]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -342,6 +388,16 @@ jobs:
       with:
         name: llvm-windows-x86_64
 
+    - name: Download MacOS ARM64 Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: llvm-darwin-arm64
+
+    - name: Download MacOS x86_64 Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: llvm-darwin-x86_64
+
     - name: Publish Release Assets
       uses: softprops/action-gh-release@v2
       with:
@@ -352,5 +408,7 @@ jobs:
           llvm-android-x86_64.tar.gz
           llvm-android-riscv64.tar.gz
           llvm-windows-x86_64.zip
+          llvm-darwin-arm64.tar.gz
+          llvm-darwin-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
