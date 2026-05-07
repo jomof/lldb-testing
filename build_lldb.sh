@@ -61,10 +61,8 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 
 pushd "${OUT_DIR}"
-time "${NINJA}" lldb
-
-echo "Installing LLDB to ${INSTALL_DIR}"
-time "${NINJA}" tools/lldb/install
+echo "Building and installing specific host tools"
+time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-liblldb-stripped
 
 echo ""
 echo "=============================="

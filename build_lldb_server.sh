@@ -37,8 +37,10 @@ CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-Release}"
 
 BUILD_DIR="${SCRIPT_DIR}/build-${ANDROID_ABI}"
 OUT_DIR="${BUILD_DIR}/out"
+INSTALL_DIR="${BUILD_DIR}/install"
 mkdir -p "${BUILD_DIR}"
 mkdir -p "${OUT_DIR}"
+mkdir -p "${INSTALL_DIR}/bin"
 
 pushd "${BUILD_DIR}"
 $CMAKE ../llvm-project/llvm -G Ninja \
@@ -54,13 +56,12 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
   -DANDROID_ALLOW_UNDEFINED_SYMBOLS=On \
   -DLLVM_HOST_TRIPLE="${LLVM_HOST_TRIPLE}" \
-  -DCROSS_TOOLCHAIN_FLAGS_NATIVE='-DCMAKE_C_COMPILER=cc;-DCMAKE_CXX_COMPILER=c++'
+  -DCROSS_TOOLCHAIN_FLAGS_NATIVE='-DCMAKE_C_COMPILER=cc;-DCMAKE_CXX_COMPILER=c++' \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 
 pushd "${OUT_DIR}"
-time "${NINJA}" lldb-server
-
-echo "Stripping lldb-server binary to reduce size"
-"${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" bin/lldb-server
+echo "Building and installing lldb-server"
+time "${NINJA}" install-lldb-server-stripped
 
 echo ""
 echo "=============================="
