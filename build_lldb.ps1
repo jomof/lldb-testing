@@ -23,7 +23,7 @@ $Ninja = "ninja"
 Push-Location $BuildDir
 
 # Run CMake
-# We let CMake find the system Python on the runner automatically
+# Python 3.11 is set up by the GitHub Action and is in PATH
 & $CMake ../llvm-project/llvm -G Ninja `
   -B $OutDir `
   -DCMAKE_MAKE_PROGRAM="ninja" `
