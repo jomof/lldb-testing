@@ -282,6 +282,9 @@ jobs:
     - name: Install SWIG
       run: choco install swig -y
 
+    - name: Setup MSVC Developer Command Prompt
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Build LLDB for Windows
       run: powershell ./build_lldb.ps1
 

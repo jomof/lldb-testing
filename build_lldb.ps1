@@ -26,7 +26,7 @@ Push-Location $BuildDir
 # We let CMake find the system Python on the runner automatically
 & $CMake ../llvm-project/llvm -G Ninja `
   -B $OutDir `
-  -DCMAKE_MAKE_PROGRAM=$Ninja `
+  -DCMAKE_MAKE_PROGRAM="ninja" `
   -DCMAKE_BUILD_TYPE=Release `
   -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON `
   -DLLVM_ENABLE_PROJECTS="clang;lldb" `
