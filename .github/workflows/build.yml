@@ -95,13 +95,13 @@ jobs:
         ANDROID_ABI=arm64-v8a ./build_lldb_server.sh
         mkdir -p lldb-server-arm64
         cp build-arm64-v8a/out/bin/lldb-server lldb-server-arm64/
-        tar -czf llvm-server-android-arm64.tar.gz -C lldb-server-arm64 lldb-server
+        tar -czf llvm-android-arm64.tar.gz -C lldb-server-arm64 lldb-server
 
     - name: Upload lldb-server for Android arm64
       uses: actions/upload-artifact@v4
       with:
-        name: llvm-server-android-arm64
-        path: llvm-server-android-arm64.tar.gz
+        name: llvm-android-arm64
+        path: llvm-android-arm64.tar.gz
         if-no-files-found: 'error'
 
   # Job 4: Build lldb-server for Android arm32
@@ -128,13 +128,13 @@ jobs:
         ANDROID_ABI=armeabi-v7a ./build_lldb_server.sh
         mkdir -p lldb-server-arm32
         cp build-armeabi-v7a/out/bin/lldb-server lldb-server-arm32/
-        tar -czf llvm-server-android-arm.tar.gz -C lldb-server-arm32 lldb-server
+        tar -czf llvm-android-arm.tar.gz -C lldb-server-arm32 lldb-server
 
     - name: Upload lldb-server for Android arm32
       uses: actions/upload-artifact@v4
       with:
-        name: llvm-server-android-arm
-        path: llvm-server-android-arm.tar.gz
+        name: llvm-android-arm
+        path: llvm-android-arm.tar.gz
         if-no-files-found: 'error'
 
   # Job 5: Build lldb-server for Android x86_64
@@ -161,13 +161,13 @@ jobs:
         ANDROID_ABI=x86_64 ./build_lldb_server.sh
         mkdir -p lldb-server-x86_64
         cp build-x86_64/out/bin/lldb-server lldb-server-x86_64/
-        tar -czf llvm-server-android-x86_64.tar.gz -C lldb-server-x86_64 lldb-server
+        tar -czf llvm-android-x86_64.tar.gz -C lldb-server-x86_64 lldb-server
 
     - name: Upload lldb-server for Android x86_64
       uses: actions/upload-artifact@v4
       with:
-        name: llvm-server-android-x86_64
-        path: llvm-server-android-x86_64.tar.gz
+        name: llvm-android-x86_64
+        path: llvm-android-x86_64.tar.gz
         if-no-files-found: 'error'
 
   # Job 6: Create and Publish GitHub Release (triggers only on tag push)
@@ -188,25 +188,25 @@ jobs:
     - name: Download Android arm64 Artifact
       uses: actions/download-artifact@v4
       with:
-        name: llvm-server-android-arm64
+        name: llvm-android-arm64
 
     - name: Download Android arm32 Artifact
       uses: actions/download-artifact@v4
       with:
-        name: llvm-server-android-arm
+        name: llvm-android-arm
 
     - name: Download Android x86_64 Artifact
       uses: actions/download-artifact@v4
       with:
-        name: llvm-server-android-x86_64
+        name: llvm-android-x86_64
 
     - name: Publish Release Assets
       uses: softprops/action-gh-release@v2
       with:
         files: |
           llvm-linux-x86_64.tar.gz
-          llvm-server-android-arm64.tar.gz
-          llvm-server-android-arm.tar.gz
-          llvm-server-android-x86_64.tar.gz
+          llvm-android-arm64.tar.gz
+          llvm-android-arm.tar.gz
+          llvm-android-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
