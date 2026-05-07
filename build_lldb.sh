@@ -50,6 +50,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DPANEL_LIBRARIES="${PREBUILTS_DIR}/ncurses/lib/libpanelw.a" \
   -DLLVM_ENABLE_LIBXML2=OFF \
   -DLLDB_ENABLE_LIBXML2=OFF \
+  -DLLDB_INCLUDE_TESTS=OFF \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" \
   -DLLVM_HOST_TRIPLE="x86_64-unknown-linux-gnu" \
   -DCMAKE_SYSROOT="${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot" \
