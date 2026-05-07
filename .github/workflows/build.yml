@@ -77,13 +77,13 @@ jobs:
       run: |
         chmod +x download_dependencies.sh build_lldb.sh
         ./build_lldb.sh
-        tar -czf llvm-linux-x86_64.tar.gz -C build-linux-x86_64/install .
+        python -c "import shutil; shutil.make_archive('llvm-linux-x86_64', 'zip', 'build-linux-x86_64/install')"
 
     - name: Upload LLDB for host
       uses: actions/upload-artifact@v4
       with:
         name: llvm-linux-x86_64
-        path: llvm-linux-x86_64.tar.gz
+        path: llvm-linux-x86_64.zip
         if-no-files-found: 'error'
 
   # Job 3: Build lldb-server for Android arm64
@@ -122,13 +122,13 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=arm64-v8a ./build_lldb_server.sh
-        tar -czf llvm-android-arm64.tar.gz -C build-arm64-v8a/install .
+        python -c "import shutil; shutil.make_archive('llvm-android-arm64', 'zip', 'build-arm64-v8a/install')"
 
     - name: Upload lldb-server for Android arm64
       uses: actions/upload-artifact@v4
       with:
         name: llvm-android-arm64
-        path: llvm-android-arm64.tar.gz
+        path: llvm-android-arm64.zip
         if-no-files-found: 'error'
 
   # Job 4: Build lldb-server for Android arm32
@@ -167,13 +167,13 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=armeabi-v7a ./build_lldb_server.sh
-        tar -czf llvm-android-arm.tar.gz -C build-armeabi-v7a/install .
+        python -c "import shutil; shutil.make_archive('llvm-android-arm', 'zip', 'build-armeabi-v7a/install')"
 
     - name: Upload lldb-server for Android arm32
       uses: actions/upload-artifact@v4
       with:
         name: llvm-android-arm
-        path: llvm-android-arm.tar.gz
+        path: llvm-android-arm.zip
         if-no-files-found: 'error'
 
   # Job 5: Build lldb-server for Android x86_64
@@ -212,13 +212,13 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=x86_64 ./build_lldb_server.sh
-        tar -czf llvm-android-x86_64.tar.gz -C build-x86_64/install .
+        python -c "import shutil; shutil.make_archive('llvm-android-x86_64', 'zip', 'build-x86_64/install')"
 
     - name: Upload lldb-server for Android x86_64
       uses: actions/upload-artifact@v4
       with:
         name: llvm-android-x86_64
-        path: llvm-android-x86_64.tar.gz
+        path: llvm-android-x86_64.zip
         if-no-files-found: 'error'
 
   build-android-riscv64:
@@ -256,13 +256,13 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=riscv64 ./build_lldb_server.sh
-        tar -czf llvm-android-riscv64.tar.gz -C build-riscv64/install .
+        python -c "import shutil; shutil.make_archive('llvm-android-riscv64', 'zip', 'build-riscv64/install')"
 
     - name: Upload lldb-server for Android riscv64
       uses: actions/upload-artifact@v4
       with:
         name: llvm-android-riscv64
-        path: llvm-android-riscv64.tar.gz
+        path: llvm-android-riscv64.zip
         if-no-files-found: 'error'
 
   build-windows-x86-64:
@@ -293,7 +293,7 @@ jobs:
       run: powershell ./build_lldb.ps1
 
     - name: Compress Artifact
-      run: Compress-Archive -Path build-windows-x86_64/install/* -DestinationPath llvm-windows-x86_64.zip
+      run: python -c "import shutil; shutil.make_archive('llvm-windows-x86_64', 'zip', 'build-windows-x86_64/install')"
 
     - name: Upload LLDB for Windows
       uses: actions/upload-artifact@v4
@@ -328,13 +328,13 @@ jobs:
       run: |
         chmod +x build_lldb_macos.sh
         MACOS_ARCH=arm64 ./build_lldb_macos.sh
-        tar -czf llvm-darwin-arm64.tar.gz -C build-macos-arm64/install .
+        python -c "import shutil; shutil.make_archive('llvm-darwin-arm64', 'zip', 'build-macos-arm64/install')"
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: llvm-darwin-arm64
-        path: llvm-darwin-arm64.tar.gz
+        path: llvm-darwin-arm64.zip
         if-no-files-found: 'error'
 
   # Job 6: Create and Publish GitHub Release (triggers only on tag push)
@@ -386,12 +386,12 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: |
-          llvm-linux-x86_64.tar.gz
-          llvm-android-arm64.tar.gz
-          llvm-android-arm.tar.gz
-          llvm-android-x86_64.tar.gz
-          llvm-android-riscv64.tar.gz
+          llvm-linux-x86_64.zip
+          llvm-android-arm64.zip
+          llvm-android-arm.zip
+          llvm-android-x86_64.zip
+          llvm-android-riscv64.zip
           llvm-windows-x86_64.zip
-          llvm-darwin-arm64.tar.gz
+          llvm-darwin-arm64.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
