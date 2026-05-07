@@ -304,10 +304,14 @@ jobs:
 
   build-macos:
     name: build-darwin-${{ matrix.arch }}
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        arch: [arm64, x86_64]
+        include:
+          - arch: arm64
+            os: macos-latest
+          - arch: x86_64
+            os: macos-13
     steps:
     - uses: actions/checkout@v5
       with:
@@ -324,8 +328,8 @@ jobs:
         key: ${{ runner.os }}-${{ matrix.arch }}-ccache
         max-size: 2G
 
-    - name: Install SWIG
-      run: brew install swig
+    - name: Install Dependencies
+      run: brew install swig zstd
 
     - name: Build LLDB for macOS (${{ matrix.arch }})
       run: |
