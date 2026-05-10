@@ -32,13 +32,13 @@ if [[ ! -d "${XZ_DIR}/lib" ]]; then
   mkdir -p "${BUILD_DIR}/xz-build"
   pushd "${BUILD_DIR}/xz-build"
 
-  $CMAKE "${XZ_SRC_DIR}" -G Ninja \
+  $CMAKE "${XZ_SRC_DIR}" -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${XZ_DIR}" \
     -DBUILD_SHARED_LIBS=OFF \
     -DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
 
-  $NINJA install
+  make install
   popd
   rm -rf "${BUILD_DIR}/xz-build"
 fi
