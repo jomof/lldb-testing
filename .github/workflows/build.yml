@@ -288,7 +288,11 @@ jobs:
       run: choco install swig -y
 
     - name: Install LZMA via vcpkg
-      run: vcpkg install xz:x64-windows-static
+      run: |
+        cd C:\vcpkg
+        git pull
+        .\bootstrap-vcpkg.bat
+        .\vcpkg install xz:x64-windows-static
 
     - name: Setup MSVC Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1
