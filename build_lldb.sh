@@ -48,6 +48,11 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCURSES_INCLUDE_DIRS="${PREBUILTS_DIR}/ncurses/include;${PREBUILTS_DIR}/ncurses/include/ncursesw" \
   -DCURSES_LIBRARIES="${PREBUILTS_DIR}/ncurses/lib/libncursesw.a" \
   -DPANEL_LIBRARIES="${PREBUILTS_DIR}/ncurses/lib/libpanelw.a" \
+  -DLLDB_ENABLE_LZMA=ON \
+  -DLIBLZMA_INCLUDE_DIR="${PREBUILTS_DIR}/xz/include" \
+  -DLIBLZMA_LIBRARY="${PREBUILTS_DIR}/xz/lib/liblzma.a" \
+  -DLIBLZMA_INCLUDE_DIRS="${PREBUILTS_DIR}/xz/include" \
+  -DLIBLZMA_LIBRARIES="${PREBUILTS_DIR}/xz/lib/liblzma.a" \
   -DLLVM_ENABLE_LIBXML2=OFF \
   -DLLDB_ENABLE_LIBXML2=OFF \
   -DLLDB_INCLUDE_TESTS=OFF \

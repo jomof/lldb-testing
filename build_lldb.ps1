@@ -39,6 +39,9 @@ Push-Location $BuildDir
   -DLLDB_ENABLE_LIBXML2=OFF `
   -DLLDB_INCLUDE_TESTS=OFF `
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" `
+  -DCMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows-static `
+  -DLLDB_ENABLE_LZMA=ON `
   -DCMAKE_INSTALL_PREFIX="$InstallDir"
 
 Push-Location $OutDir

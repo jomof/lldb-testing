@@ -106,6 +106,28 @@ if [[ ! -d "${LIBEDIT_DIR}/lib" ]]; then
   popd
   rm -rf libedit-20221030-3.1.tar.gz libedit-20221030-3.1
 fi
+
+# 5. Download and build static xz compiled for glibc 2.17 with -fPIC
+XZ_DIR="${PREBUILTS_DIR}/xz"
+if [[ ! -d "${XZ_DIR}/lib" ]]; then
+  echo "Downloading and building static xz..."
+  wget --progress=dot:giga https://tukaani.org/xz/xz-5.4.4.tar.gz
+  tar -xzf xz-5.4.4.tar.gz
+  pushd xz-5.4.4
+
+  CC="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
+  CXX="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
+  CFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
+  CXXFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
+  LDFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
+  ./configure --host=x86_64-linux --prefix="${XZ_DIR}" --enable-static --disable-shared
+
+  make -j$(nproc)
+  make install
+  popd
+  rm -rf xz-5.4.4.tar.gz xz-5.4.4
+fi
+
 popd
 
 

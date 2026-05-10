@@ -77,7 +77,7 @@ jobs:
       run: |
         chmod +x download_dependencies.sh build_lldb.sh
         ./build_lldb.sh
-        python -c "import shutil; shutil.make_archive('llvm-linux-x86_64', 'zip', 'build-linux-x86_64/install')"
+        cd build-linux-x86-64/install && zip -r -y ../../llvm-linux-x86_64.zip .
 
     - name: Upload LLDB for host
       uses: actions/upload-artifact@v4
@@ -122,7 +122,7 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=arm64-v8a ./build_lldb_server.sh
-        python -c "import shutil; shutil.make_archive('llvm-android-arm64-v8a', 'zip', 'build-arm64-v8a/install')"
+        cd build-arm64-v8a/install && zip -r -y ../../llvm-android-arm64-v8a.zip .
 
     - name: Upload lldb-server for Android arm64
       uses: actions/upload-artifact@v4
@@ -167,7 +167,7 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=armeabi-v7a ./build_lldb_server.sh
-        python -c "import shutil; shutil.make_archive('llvm-android-armeabi', 'zip', 'build-armeabi-v7a/install')"
+        cd build-armeabi-v7a/install && zip -r -y ../../llvm-android-armeabi.zip .
 
     - name: Upload lldb-server for Android arm32
       uses: actions/upload-artifact@v4
@@ -212,7 +212,7 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=x86_64 ./build_lldb_server.sh
-        python -c "import shutil; shutil.make_archive('llvm-android-x86_64', 'zip', 'build-x86_64/install')"
+        cd build-x86_64/install && zip -r -y ../../llvm-android-x86_64.zip .
 
     - name: Upload lldb-server for Android x86_64
       uses: actions/upload-artifact@v4
@@ -257,7 +257,7 @@ jobs:
       run: |
         chmod +x build_lldb_server.sh
         ANDROID_ABI=riscv64 ./build_lldb_server.sh
-        python -c "import shutil; shutil.make_archive('llvm-android-riscv64', 'zip', 'build-riscv64/install')"
+        cd build-riscv64/install && zip -r -y ../../llvm-android-riscv64.zip .
 
     - name: Upload lldb-server for Android riscv64
       uses: actions/upload-artifact@v4
@@ -286,6 +286,9 @@ jobs:
 
     - name: Install SWIG
       run: choco install swig -y
+
+    - name: Install LZMA via vcpkg
+      run: vcpkg install lzma:x64-windows-static
 
     - name: Setup MSVC Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1
@@ -323,13 +326,13 @@ jobs:
         max-size: 2G
 
     - name: Install Dependencies
-      run: brew install swig zstd
+      run: brew install swig zstd xz
 
     - name: Build LLDB for macOS (arm64)
       run: |
         chmod +x build_lldb_macos.sh
         MACOS_ARCH=arm64 ./build_lldb_macos.sh
-        python -c "import shutil; shutil.make_archive('llvm-darwin-arm64', 'zip', 'build-macos-arm64/install')"
+        cd build-macos-arm64/install && zip -r -y ../../llvm-darwin-arm64.zip .
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
