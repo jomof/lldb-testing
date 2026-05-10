@@ -28,6 +28,29 @@ mkdir -p "${INSTALL_DIR}"
 
 # Note: Python requires swig. We assume it's installed on the local machine.
 
+# Build static xz from submodule compiled for glibc 2.17 with -fPIC
+XZ_DIR="${PREBUILTS_DIR}/xz"
+XZ_SRC_DIR="${SCRIPT_DIR}/xz"
+if [[ ! -d "${XZ_DIR}/lib" ]]; then
+  echo "Building static xz from submodule..."
+  mkdir -p xz-build
+  pushd xz-build
+
+  CC="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
+  CXX="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
+  CFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
+  CXXFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
+  LDFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
+  "${CMAKE}" "${XZ_SRC_DIR}" -G "Unix Makefiles" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${XZ_DIR}" \
+    -DBUILD_SHARED_LIBS=OFF
+
+  make install
+  popd
+  rm -rf xz-build
+fi
+
 pushd "${BUILD_DIR}"
 $CMAKE ../llvm-project/llvm -G Ninja \
   -B "${OUT_DIR}" \

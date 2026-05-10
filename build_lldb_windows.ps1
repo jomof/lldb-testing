@@ -33,13 +33,13 @@ if (!(Test-Path $XzDir)) {
   New-Item -ItemType Directory -Path $XzBuildDir -Force
   
   Push-Location $XzBuildDir
-  & $CMake $XzSrcDir -G Ninja `
+  & $CMake $XzSrcDir -G "NMake Makefiles" `
     -B $XzBuildDir `
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_INSTALL_PREFIX=$XzInstallDir `
     -DBUILD_SHARED_LIBS=OFF
   
-  & $Ninja install
+  nmake install
   Pop-Location
   
   # Cleanup

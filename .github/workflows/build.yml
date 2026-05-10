@@ -75,8 +75,8 @@ jobs:
 
     - name: Build LLDB for host
       run: |
-        chmod +x download_dependencies.sh build_lldb.sh
-        ./build_lldb.sh
+        chmod +x download_dependencies.sh build_lldb_linux.sh
+        ./build_lldb_linux.sh
         cd build-linux-x86-64/install && zip -r -y ../../llvm-linux-x86_64.zip .
 
     - name: Upload LLDB for host
@@ -291,7 +291,7 @@ jobs:
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Build LLDB for Windows
-      run: powershell ./build_lldb.ps1
+      run: powershell ./build_lldb_windows.ps1
 
     - name: Compress Artifact
       run: python -c "import shutil; shutil.make_archive('llvm-windows-x86_64', 'zip', 'build-windows-x86_64/install')"
