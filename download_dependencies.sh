@@ -107,25 +107,27 @@ if [[ ! -d "${LIBEDIT_DIR}/lib" ]]; then
   rm -rf libedit-20221030-3.1.tar.gz libedit-20221030-3.1
 fi
 
-# 5. Download and build static xz compiled for glibc 2.17 with -fPIC
+# 5. Build static xz from submodule compiled for glibc 2.17 with -fPIC
 XZ_DIR="${PREBUILTS_DIR}/xz"
+XZ_SRC_DIR="${SCRIPT_DIR}/xz"
 if [[ ! -d "${XZ_DIR}/lib" ]]; then
-  echo "Downloading and building static xz..."
-  wget --progress=dot:giga https://tukaani.org/xz/xz-5.4.4.tar.gz
-  tar -xzf xz-5.4.4.tar.gz
-  pushd xz-5.4.4
+  echo "Building static xz from submodule..."
+  mkdir -p xz-build
+  pushd xz-build
 
   CC="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
   CXX="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
   CFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
   CXXFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
   LDFLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
-  ./configure --host=x86_64-linux --prefix="${XZ_DIR}" --enable-static --disable-shared
+  "${PREBUILTS_DIR}/cmake/3.22.1/bin/cmake" "${XZ_SRC_DIR}" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${XZ_DIR}" \
+    -DBUILD_SHARED_LIBS=OFF
 
-  make -j$(nproc)
-  make install
+  "${PREBUILTS_DIR}/cmake/3.22.1/bin/ninja" install
   popd
-  rm -rf xz-5.4.4.tar.gz xz-5.4.4
+  rm -rf xz-build
 fi
 
 popd

@@ -287,13 +287,6 @@ jobs:
     - name: Install SWIG
       run: choco install swig -y
 
-    - name: Install LZMA via vcpkg
-      run: |
-        cd C:\vcpkg
-        git pull
-        .\bootstrap-vcpkg.bat
-        .\vcpkg install xz:x64-windows-static
-
     - name: Setup MSVC Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1
 
@@ -330,7 +323,7 @@ jobs:
         max-size: 2G
 
     - name: Install Dependencies
-      run: brew install swig zstd xz
+      run: brew install swig zstd
 
     - name: Build LLDB for macOS (arm64)
       run: |

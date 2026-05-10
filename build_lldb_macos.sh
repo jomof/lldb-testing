@@ -25,6 +25,24 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${OUT_DIR}"
 mkdir -p "${INSTALL_DIR}"
 
+XZ_DIR="${BUILD_DIR}/xz"
+XZ_SRC_DIR="${SCRIPT_DIR}/xz"
+if [[ ! -d "${XZ_DIR}/lib" ]]; then
+  echo "Building static xz from submodule for macOS..."
+  mkdir -p "${BUILD_DIR}/xz-build"
+  pushd "${BUILD_DIR}/xz-build"
+
+  $CMAKE "${XZ_SRC_DIR}" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${XZ_DIR}" \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+
+  $NINJA install
+  popd
+  rm -rf "${BUILD_DIR}/xz-build"
+fi
+
 pushd "${BUILD_DIR}"
 $CMAKE ../llvm-project/llvm -G Ninja \
   -B "${OUT_DIR}" \
@@ -38,6 +56,11 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLLVM_ENABLE_LIBXML2=OFF \
   -DLLDB_ENABLE_LIBXML2=OFF \
   -DLLDB_INCLUDE_TESTS=OFF \
+  -DLLDB_ENABLE_LZMA=ON \
+  -DLIBLZMA_INCLUDE_DIR="${XZ_DIR}/include" \
+  -DLIBLZMA_LIBRARY="${XZ_DIR}/lib/liblzma.a" \
+  -DLIBLZMA_INCLUDE_DIRS="${XZ_DIR}/include" \
+  -DLIBLZMA_LIBRARIES="${XZ_DIR}/lib/liblzma.a" \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" \
   -DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
