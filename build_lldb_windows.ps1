@@ -36,7 +36,7 @@ if (!(Test-Path $XzDir)) {
   & $CMake $XzSrcDir -G "NMake Makefiles" `
     -B $XzBuildDir `
     -DCMAKE_BUILD_TYPE=Release `
-    -DCMAKE_INSTALL_PREFIX=$XzInstallDir `
+    "-DCMAKE_INSTALL_PREFIX=$XzInstallDir" `
     -DBUILD_SHARED_LIBS=OFF
   if ($LASTEXITCODE -ne 0) { throw "CMake for XZ failed" }
   
