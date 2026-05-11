@@ -77,7 +77,7 @@ jobs:
       run: |
         chmod +x download_dependencies.sh build_lldb_linux.sh
         ./build_lldb_linux.sh
-        cd build-linux-x86-64/install && zip -r -y ../../llvm-linux-x86_64.zip .
+        cd build-linux-x86_64/install && zip -r -y ../../llvm-linux-x86_64.zip .
 
     - name: Upload LLDB for host
       uses: actions/upload-artifact@v4
