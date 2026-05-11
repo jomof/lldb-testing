@@ -71,7 +71,8 @@ if (!(Test-Path $XzDir)) {
 Push-Location $OutDir
 
 Write-Host "Building and installing specific host tools"
-& $Ninja install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-liblldb-stripped
+& $Ninja install-lldb install-lldb-dap install-lldb-mcp install-liblldb
+if ($LASTEXITCODE -ne 0) { throw "Ninja failed with exit code $LASTEXITCODE" }
 
 Pop-Location
 Pop-Location

@@ -4,3 +4,4 @@ jdk/
 build-*/
 /.idea/
 prebuilts/
+download/
