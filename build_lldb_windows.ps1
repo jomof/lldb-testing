@@ -38,9 +38,14 @@ if (!(Test-Path $XzDir)) {
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_INSTALL_PREFIX=$XzInstallDir `
     -DBUILD_SHARED_LIBS=OFF
+  if ($LASTEXITCODE -ne 0) { throw "CMake for XZ failed" }
   
   nmake install
+  if ($LASTEXITCODE -ne 0) { throw "NMake install for XZ failed" }
+  
   Pop-Location
+  
+  if (!(Test-Path (Join-Path $XzInstallDir "lib\liblzma.lib"))) { throw "liblzma.lib not found after install" }
   
   # Cleanup
   Remove-Item -Recurse -Force $XzBuildDir
@@ -66,6 +71,8 @@ if (!(Test-Path $XzDir)) {
   -DLLDB_ENABLE_LZMA=ON `
   -DLIBLZMA_INCLUDE_DIR="$XzDir/include" `
   -DLIBLZMA_LIBRARY="$XzDir/lib/liblzma.lib" `
+  -DCMAKE_C_FLAGS="-DLZMA_API_STATIC" `
+  -DCMAKE_CXX_FLAGS="-DLZMA_API_STATIC" `
   -DCMAKE_INSTALL_PREFIX="$InstallDir"
 
 Push-Location $OutDir
