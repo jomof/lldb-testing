@@ -90,11 +90,28 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCMAKE_CXX_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
   -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
   -DCMAKE_SHARED_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
-  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+  -DLLDB_PYTHON_RELATIVE_PATH="lib/python3.11/site-packages"
 
 pushd "${OUT_DIR}"
 echo "Building and installing specific host tools"
-time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-liblldb-stripped
+time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-liblldb-stripped install-lldb-python-scripts
+
+popd
+popd
+
+# Bundle Python runtime into the install directory so the package is self-contained.
+# This allows lldb-dap and lldb to use Python scripting without requiring a system Python.
+echo "Bundling Python runtime..."
+cp "${PYTHON_DIR}/lib/libpython3.11.so.1.0" "${INSTALL_DIR}/lib/"
+ln -sf libpython3.11.so.1.0 "${INSTALL_DIR}/lib/libpython3.11.so"
+cp -r "${PYTHON_DIR}/lib/python3.11" "${INSTALL_DIR}/lib/python3.11.bundled"
+# Merge: copy stdlib into the install python3.11 dir without overwriting the lldb module
+cp -rn "${INSTALL_DIR}/lib/python3.11.bundled/"* "${INSTALL_DIR}/lib/python3.11/" 2>/dev/null || true
+rm -rf "${INSTALL_DIR}/lib/python3.11.bundled"
+cp "${PYTHON_DIR}/bin/python3" "${INSTALL_DIR}/bin/python3"
+ln -sf python3 "${INSTALL_DIR}/bin/python3.11"
+echo "Python runtime bundled successfully."
 
 echo ""
 echo "=============================="

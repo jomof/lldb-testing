@@ -73,16 +73,47 @@ if (!(Test-Path $XzDir)) {
   -DLIBLZMA_LIBRARY="$XzDir/lib/liblzma.lib" `
   -DCMAKE_C_FLAGS="-DLZMA_API_STATIC" `
   -DCMAKE_CXX_FLAGS="-DLZMA_API_STATIC" `
-  -DCMAKE_INSTALL_PREFIX="$InstallDir"
+  -DCMAKE_INSTALL_PREFIX="$InstallDir" `
+  -DLLDB_PYTHON_RELATIVE_PATH="Lib/site-packages"
 
 Push-Location $OutDir
 
 Write-Host "Building and installing specific host tools"
-& $Ninja install-lldb install-lldb-dap install-lldb-mcp install-liblldb
+& $Ninja install-lldb install-lldb-dap install-lldb-mcp install-liblldb install-lldb-python-scripts
 if ($LASTEXITCODE -ne 0) { throw "Ninja failed with exit code $LASTEXITCODE" }
 
 Pop-Location
 Pop-Location
+
+# Bundle Python runtime into the install directory so the package is self-contained.
+Write-Host "Bundling Python runtime..."
+$PythonExe = (Get-Command python).Source
+$PythonPrefix = python -c "import sys; print(sys.prefix)"
+$PythonStdlib = python -c "import sysconfig; print(sysconfig.get_path('stdlib'))"
+$PythonDLLs = python -c "import os, sys; print(os.path.join(sys.prefix, 'DLLs'))"
+$PythonVerNoDot = python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')"
+
+# Copy Python DLLs to bin directory (where lldb.exe and liblldb.dll live)
+Copy-Item "$PythonPrefix\python$PythonVerNoDot.dll" "$InstallDir\bin\" -ErrorAction SilentlyContinue
+Copy-Item "$PythonPrefix\python3.dll" "$InstallDir\bin\" -ErrorAction SilentlyContinue
+Copy-Item $PythonExe "$InstallDir\bin\python.exe" -ErrorAction SilentlyContinue
+
+# Copy Python stdlib
+if (Test-Path $PythonStdlib) {
+  $DestLib = "$InstallDir\Lib"
+  if (!(Test-Path $DestLib)) { New-Item -ItemType Directory -Path $DestLib -Force }
+  # Copy stdlib files that don't already exist (preserve the lldb site-packages installed by CMake)
+  Copy-Item "$PythonStdlib\*" $DestLib -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# Copy DLLs directory (platform-specific .pyd modules)
+if (Test-Path $PythonDLLs) {
+  $DestDLLs = "$InstallDir\DLLs"
+  if (!(Test-Path $DestDLLs)) { New-Item -ItemType Directory -Path $DestDLLs -Force }
+  Copy-Item "$PythonDLLs\*" $DestDLLs -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host "Python runtime bundled successfully."
 
 Write-Host ""
 Write-Host "=============================="
