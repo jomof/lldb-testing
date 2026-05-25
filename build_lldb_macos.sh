@@ -102,6 +102,25 @@ cp -L "$(which python3)" "${INSTALL_DIR}/bin/python3"
 ln -sf python3 "${INSTALL_DIR}/bin/python${PYTHON_VER}"
 echo "Python runtime bundled successfully."
 
+# Fix library paths so the package is relocatable.
+# liblldb.dylib links against the absolute build-time Python path (e.g.
+# /opt/homebrew/.../Python.framework/.../Python). Rewrite it to use
+# @loader_path so it finds our bundled libpython instead.
+echo "Fixing library install names..."
+PYTHON_LIBNAME="libpython${PYTHON_VER}.dylib"
+OLD_PYTHON_PATH=$(otool -L "${INSTALL_DIR}/lib/liblldb.dylib" | grep -i python | awk '{print $1}')
+if [ -n "${OLD_PYTHON_PATH}" ]; then
+  install_name_tool -change "${OLD_PYTHON_PATH}" "@loader_path/${PYTHON_LIBNAME}" "${INSTALL_DIR}/lib/liblldb.dylib"
+fi
+install_name_tool -id "@loader_path/${PYTHON_LIBNAME}" "${INSTALL_DIR}/lib/${PYTHON_LIBNAME}"
+
+# Re-codesign everything. macOS kills binaries with invalid signatures,
+# and install_name_tool / strip both invalidate them.
+echo "Re-signing binaries..."
+codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/python3
+codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib "${INSTALL_DIR}"/lib/${PYTHON_LIBNAME}
+echo "Done."
+
 echo ""
 echo "=============================="
 echo ""
