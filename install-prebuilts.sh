@@ -1,4 +1,4 @@
-export REMOTE_ROOT=https://github.com/jomof/lldb-testing/releases/download/build-10f9417/
+REMOTE_ROOT=https://github.com/jomof/lldb-testing/releases/download/build-5b93aeb
 STUDIO_PREBUILTS_DIR="$HOME/projects/studio-main/prebuilts/tools"
 
 rm -rf download/*
