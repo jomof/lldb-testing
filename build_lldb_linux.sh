@@ -95,7 +95,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
 
 pushd "${OUT_DIR}"
 echo "Building and installing specific host tools"
-time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-liblldb-stripped install-lldb-python-scripts
+time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-lldb-server-stripped install-liblldb-stripped install-lldb-python-scripts
 
 popd
 popd

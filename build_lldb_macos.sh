@@ -68,7 +68,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
 
 pushd "${OUT_DIR}"
 echo "Building and installing specific host tools"
-time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-liblldb-stripped install-lldb-python-scripts
+time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp-stripped install-lldb-server-stripped install-liblldb-stripped install-lldb-python-scripts
 
 popd
 popd
@@ -117,7 +117,7 @@ install_name_tool -id "@loader_path/${PYTHON_LIBNAME}" "${INSTALL_DIR}/lib/${PYT
 # Re-codesign everything. macOS kills binaries with invalid signatures,
 # and install_name_tool / strip both invalidate them.
 echo "Re-signing binaries..."
-codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/python3
+codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/lldb-server "${INSTALL_DIR}"/bin/python3
 codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib "${INSTALL_DIR}"/lib/${PYTHON_LIBNAME}
 echo "Done."
 
