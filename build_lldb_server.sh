@@ -46,7 +46,7 @@ mkdir -p "${BUILD_DIR}"
 mkdir -p "${OUT_DIR}"
 mkdir -p "${INSTALL_DIR}/bin"
 
-pushd "${BUILD_DIR}"
+pushd "${BUILD_DIR}" || exit
 $CMAKE ../llvm-project/llvm -G Ninja \
   -B "${OUT_DIR}" \
   -DCMAKE_MAKE_PROGRAM="${NINJA}" \
@@ -67,7 +67,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCROSS_TOOLCHAIN_FLAGS_NATIVE='-DCMAKE_C_COMPILER=cc;-DCMAKE_CXX_COMPILER=c++' \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
 
-pushd "${OUT_DIR}"
+pushd "${OUT_DIR}" || exit
 echo "Building and installing lldb-server"
 time "${NINJA}" install-lldb-server-stripped
 

@@ -14,7 +14,6 @@ PREBUILTS_DIR="${SCRIPT_DIR}/prebuilts"
 
 CMAKE="${PREBUILTS_DIR}/cmake/3.22.1/bin/cmake"
 NINJA="${PREBUILTS_DIR}/cmake/3.22.1/bin/ninja"
-ANDROID_NDK_HOME="${PREBUILTS_DIR}/ndk/android-ndk-r28c"
 PYTHON_DIR="${SCRIPT_DIR}/python3.11"
 
 CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-Release}"
@@ -31,6 +30,7 @@ mkdir -p "${INSTALL_DIR}"
 # Build static xz from submodule compiled for glibc 2.17 with -fPIC
 XZ_DIR="${PREBUILTS_DIR}/xz"
 XZ_SRC_DIR="${SCRIPT_DIR}/xz"
+LIBXML2_DIR="${PREBUILTS_DIR}/libxml2"
 if [[ ! -d "${XZ_DIR}/lib" ]]; then
   echo "Building static xz from submodule..."
   mkdir -p xz-build
@@ -61,6 +61,8 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
   -DLLVM_ENABLE_PROJECTS="clang;lldb" \
   -DLLDB_ENABLE_PYTHON=ON \
+  -DLLDB_ENABLE_LUA=OFF \
+  -DLLDB_ENABLE_TREESITTER=OFF \
   -DPython3_LIBRARIES="${PYTHON_DIR}/lib/libpython3.11.so" \
   -DPython3_INCLUDE_DIRS="${PYTHON_DIR}/include/python3.11" \
   -DPython3_EXECUTABLE="${PYTHON_DIR}/bin/python3" \
@@ -76,8 +78,12 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLIBLZMA_LIBRARY="${PREBUILTS_DIR}/xz/lib/liblzma.a" \
   -DLIBLZMA_INCLUDE_DIRS="${PREBUILTS_DIR}/xz/include" \
   -DLIBLZMA_LIBRARIES="${PREBUILTS_DIR}/xz/lib/liblzma.a" \
-  -DLLVM_ENABLE_LIBXML2=OFF \
-  -DLLDB_ENABLE_LIBXML2=OFF \
+  -DLLVM_ENABLE_LIBXML2=ON \
+  -DLLDB_ENABLE_LIBXML2=ON \
+  -DLIBXML2_INCLUDE_DIR="${LIBXML2_DIR}/include/libxml2" \
+  -DLIBXML2_LIBRARY="${LIBXML2_DIR}/lib/libxml2.a" \
+  -DLIBXML2_LIBRARIES="${LIBXML2_DIR}/lib/libxml2.a" \
+  -DLLVM_ENABLE_ZSTD=OFF \
   -DLLDB_INCLUDE_TESTS=OFF \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" \
   -DLLVM_HOST_TRIPLE="x86_64-unknown-linux-gnu" \
@@ -111,6 +117,10 @@ cp -rn "${INSTALL_DIR}/lib/python3.11.bundled/"* "${INSTALL_DIR}/lib/python3.11/
 rm -rf "${INSTALL_DIR}/lib/python3.11.bundled"
 cp "${PYTHON_DIR}/bin/python3" "${INSTALL_DIR}/bin/python3"
 ln -sf python3 "${INSTALL_DIR}/bin/python3.11"
+
+VERSION_OUTPUT=$("${INSTALL_DIR}/bin/lldb" -b -o "version --verbose")
+echo "${VERSION_OUTPUT}"
+grep -q "xml: yes" <<<"${VERSION_OUTPUT}"
 echo "Python runtime bundled successfully."
 
 echo ""

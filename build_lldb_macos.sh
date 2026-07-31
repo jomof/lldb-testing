@@ -15,6 +15,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # We assume cmake and ninja are in PATH on the macOS runner
 CMAKE="cmake"
 NINJA="ninja"
+PYTHON_EXECUTABLE="$(command -v python3)"
+PYTHON_PREFIX="$("${PYTHON_EXECUTABLE}" -c 'import sys; print(sys.prefix)')"
+PYTHON_VERSION="$("${PYTHON_EXECUTABLE}" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+MACOS_SDK="$(xcrun --show-sdk-path)"
+LIBXML2_INCLUDE_DIR="${MACOS_SDK}/usr/include/libxml2"
+LIBXML2_LIBRARY="${MACOS_SDK}/usr/lib/libxml2.tbd"
 
 CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-Release}"
 
@@ -53,8 +59,17 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
   -DLLVM_ENABLE_PROJECTS="clang;lldb" \
   -DLLDB_ENABLE_PYTHON=ON \
-  -DLLVM_ENABLE_LIBXML2=OFF \
-  -DLLDB_ENABLE_LIBXML2=OFF \
+  -DLLDB_ENABLE_LUA=OFF \
+  -DLLDB_ENABLE_TREESITTER=OFF \
+  -DPython3_EXECUTABLE="${PYTHON_EXECUTABLE}" \
+  -DPython3_ROOT_DIR="${PYTHON_PREFIX}" \
+  -DPython3_FIND_FRAMEWORK=LAST \
+  -DLLVM_ENABLE_LIBXML2=ON \
+  -DLLDB_ENABLE_LIBXML2=ON \
+  -DLIBXML2_INCLUDE_DIR="${LIBXML2_INCLUDE_DIR}" \
+  -DLIBXML2_LIBRARY="${LIBXML2_LIBRARY}" \
+  -DLIBXML2_LIBRARIES="${LIBXML2_LIBRARY}" \
+  -DLLVM_ENABLE_ZSTD=OFF \
   -DLLDB_INCLUDE_TESTS=OFF \
   -DLLDB_ENABLE_LZMA=ON \
   -DLIBLZMA_INCLUDE_DIR="${XZ_DIR}/include" \
@@ -64,7 +79,8 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" \
   -DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
-  -DLLDB_PYTHON_RELATIVE_PATH="lib/python$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')/site-packages"
+  -DLLDB_PYTHON_RELATIVE_PATH="lib/python${PYTHON_VERSION}/site-packages" \
+  -DLLDB_PYTHON_EXE_RELATIVE_PATH="bin/python${PYTHON_VERSION}"
 
 pushd "${OUT_DIR}"
 echo "Building and installing specific host tools"
@@ -75,15 +91,14 @@ popd
 
 # Bundle Python runtime into the install directory so the package is self-contained.
 echo "Bundling Python runtime..."
-PYTHON_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-PYTHON_PREFIX=$(python3 -c "import sys; print(sys.prefix)")
-PYTHON_STDLIB=$(python3 -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
-PYTHON_PLATSTDLIB=$(python3 -c "import sysconfig; print(sysconfig.get_path('platstdlib'))")
+PYTHON_VER="${PYTHON_VERSION}"
+PYTHON_STDLIB=$("${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
+PYTHON_PLATSTDLIB=$("${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('platstdlib'))")
 
 # Copy Python shared library
 mkdir -p "${INSTALL_DIR}/lib"
-PYTHON_LIBDIR=$(python3 -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-for f in "${PYTHON_LIBDIR}"/libpython${PYTHON_VER}*.dylib; do
+PYTHON_LIBDIR=$("${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
+for f in "${PYTHON_LIBDIR}"/libpython"${PYTHON_VER}"*.dylib; do
   if [ -f "$f" ]; then
     cp -L "$f" "${INSTALL_DIR}/lib/"
   fi
@@ -98,7 +113,7 @@ if [ -d "${PYTHON_PLATSTDLIB}/lib-dynload" ]; then
 fi
 
 # Copy Python binary
-cp -L "$(which python3)" "${INSTALL_DIR}/bin/python3"
+cp -L "${PYTHON_EXECUTABLE}" "${INSTALL_DIR}/bin/python3"
 ln -sf python3 "${INSTALL_DIR}/bin/python${PYTHON_VER}"
 echo "Python runtime bundled successfully."
 
@@ -118,7 +133,11 @@ install_name_tool -id "@loader_path/${PYTHON_LIBNAME}" "${INSTALL_DIR}/lib/${PYT
 # and install_name_tool / strip both invalidate them.
 echo "Re-signing binaries..."
 codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/lldb-server "${INSTALL_DIR}"/bin/python3
-codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib "${INSTALL_DIR}"/lib/${PYTHON_LIBNAME}
+codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib "${INSTALL_DIR}/lib/${PYTHON_LIBNAME}"
+
+VERSION_OUTPUT=$("${INSTALL_DIR}/bin/lldb" -b -o "version --verbose")
+echo "${VERSION_OUTPUT}"
+grep -q "xml: yes" <<<"${VERSION_OUTPUT}"
 echo "Done."
 
 echo ""

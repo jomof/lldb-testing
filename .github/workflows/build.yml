@@ -287,6 +287,12 @@ jobs:
     - name: Install SWIG
       run: choco install swig -y
 
+    - name: Cache static libxml2
+      uses: actions/cache@v4
+      with:
+        path: build-windows-x86_64/libxml2/
+        key: windows-libxml2-2.9.12
+
     - name: Setup MSVC Developer Command Prompt
       uses: ilammy/msvc-dev-cmd@v1
 
@@ -323,7 +329,7 @@ jobs:
         max-size: 2G
 
     - name: Install Dependencies
-      run: brew install swig zstd
+      run: brew install swig
 
     - name: Build LLDB for macOS (arm64)
       run: |
