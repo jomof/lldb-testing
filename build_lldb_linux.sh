@@ -66,6 +66,8 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DPython3_LIBRARIES="${PYTHON_DIR}/lib/libpython3.11.so" \
   -DPython3_INCLUDE_DIRS="${PYTHON_DIR}/include/python3.11" \
   -DPython3_EXECUTABLE="${PYTHON_DIR}/bin/python3" \
+  -DLLDB_EMBED_PYTHON_HOME=ON \
+  -DLLDB_PYTHON_HOME=.. \
   -DLLDB_ENABLE_LIBEDIT=ON \
   -DLibEdit_INCLUDE_DIRS="${PREBUILTS_DIR}/libedit/include" \
   -DLibEdit_LIBRARIES="${PREBUILTS_DIR}/libedit/lib/libedit.a" \
