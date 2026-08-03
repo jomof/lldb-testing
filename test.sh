@@ -21,6 +21,7 @@ PYTHON_DIR="${SCRIPT_DIR}/python3.11"
 PYTHON="${PYTHON_DIR}/bin/python3"
 
 # We set PYTHONPATH this way so that Python can execute `import lldb`
+export PYTHONHOME="${SCRIPT_DIR}/python3.11"
 export PYTHONPATH=$("${LLDB}" -P)
 
 "$PYTHON" test.py --android_abi="${ANDROID_ABI}"
