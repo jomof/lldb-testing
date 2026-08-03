@@ -23,6 +23,7 @@ OUT_DIR="${BUILD_DIR}/out"
 INSTALL_DIR="${BUILD_DIR}/install"
 mkdir -p "${BUILD_DIR}"
 mkdir -p "${OUT_DIR}"
+rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
 
 # Note: Python requires swig. We assume it's installed on the local machine.
@@ -66,8 +67,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DPython3_LIBRARIES="${PYTHON_DIR}/lib/libpython3.11.so" \
   -DPython3_INCLUDE_DIRS="${PYTHON_DIR}/include/python3.11" \
   -DPython3_EXECUTABLE="${PYTHON_DIR}/bin/python3" \
-  -DLLDB_EMBED_PYTHON_HOME=ON \
-  -DLLDB_PYTHON_HOME=.. \
+  -DLLDB_EMBED_PYTHON_HOME=OFF \
   -DLLDB_ENABLE_LIBEDIT=ON \
   -DLibEdit_INCLUDE_DIRS="${PREBUILTS_DIR}/libedit/include" \
   -DLibEdit_LIBRARIES="${PREBUILTS_DIR}/libedit/lib/libedit.a" \
@@ -99,7 +99,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
   -DCMAKE_SHARED_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
-  -DLLDB_PYTHON_RELATIVE_PATH="lib/python3.11/site-packages"
+  -DLLDB_PYTHON_RELATIVE_PATH="lib/python"
 
 pushd "${OUT_DIR}"
 echo "Building and installing specific host tools"
@@ -108,22 +108,19 @@ time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp
 popd
 popd
 
-# Bundle Python runtime into the install directory so the package is self-contained.
-# This allows lldb-dap and lldb to use Python scripting without requiring a system Python.
-echo "Bundling Python runtime..."
-cp "${PYTHON_DIR}/lib/libpython3.11.so.1.0" "${INSTALL_DIR}/lib/"
-ln -sf libpython3.11.so.1.0 "${INSTALL_DIR}/lib/libpython3.11.so"
-cp -r "${PYTHON_DIR}/lib/python3.11" "${INSTALL_DIR}/lib/python3.11.bundled"
-# Merge: copy stdlib into the install python3.11 dir without overwriting the lldb module
-cp -rn "${INSTALL_DIR}/lib/python3.11.bundled/"* "${INSTALL_DIR}/lib/python3.11/" 2>/dev/null || true
-rm -rf "${INSTALL_DIR}/lib/python3.11.bundled"
-cp "${PYTHON_DIR}/bin/python3" "${INSTALL_DIR}/bin/python3"
-ln -sf python3 "${INSTALL_DIR}/bin/python3.11"
-
-VERSION_OUTPUT=$("${INSTALL_DIR}/bin/lldb" -b -o "version --verbose")
+# Releases intentionally contain LLDB's Python modules only. Consumers provide
+# Python 3.11 and configure PYTHONHOME plus the platform library search path.
+VERSION_OUTPUT=$( \
+  PYTHONHOME="${PYTHON_DIR}" \
+  LD_LIBRARY_PATH="${PYTHON_DIR}/lib:${INSTALL_DIR}/lib" \
+  "${INSTALL_DIR}/bin/lldb" -b \
+    -o "version --verbose" \
+    -o "script import lldb; print(lldb.SBDebugger.GetVersionString())" \
+)
 echo "${VERSION_OUTPUT}"
 grep -q "xml: yes" <<<"${VERSION_OUTPUT}"
-echo "Python runtime bundled successfully."
+test ! -e "${INSTALL_DIR}/bin/python3"
+test ! -e "${INSTALL_DIR}/lib/libpython3.11.so"
 
 echo ""
 echo "=============================="

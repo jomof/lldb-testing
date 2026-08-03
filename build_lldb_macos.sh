@@ -17,7 +17,7 @@ CMAKE="cmake"
 NINJA="ninja"
 PYTHON_EXECUTABLE="$(command -v python3)"
 PYTHON_PREFIX="$("${PYTHON_EXECUTABLE}" -c 'import sys; print(sys.prefix)')"
-PYTHON_VERSION="$("${PYTHON_EXECUTABLE}" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+PYTHON_LIBDIR="$("${PYTHON_EXECUTABLE}" -c 'import sysconfig; print(sysconfig.get_config_var("LIBDIR"))')"
 MACOS_SDK="$(xcrun --show-sdk-path)"
 LIBXML2_INCLUDE_DIR="${MACOS_SDK}/usr/include/libxml2"
 LIBXML2_LIBRARY="${MACOS_SDK}/usr/lib/libxml2.tbd"
@@ -29,6 +29,7 @@ OUT_DIR="${BUILD_DIR}/out"
 INSTALL_DIR="${BUILD_DIR}/install"
 mkdir -p "${BUILD_DIR}"
 mkdir -p "${OUT_DIR}"
+rm -rf "${INSTALL_DIR}"
 mkdir -p "${INSTALL_DIR}"
 
 XZ_DIR="${BUILD_DIR}/xz"
@@ -64,6 +65,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DPython3_EXECUTABLE="${PYTHON_EXECUTABLE}" \
   -DPython3_ROOT_DIR="${PYTHON_PREFIX}" \
   -DPython3_FIND_FRAMEWORK=LAST \
+  -DLLDB_EMBED_PYTHON_HOME=OFF \
   -DLLVM_ENABLE_LIBXML2=ON \
   -DLLDB_ENABLE_LIBXML2=ON \
   -DLIBXML2_INCLUDE_DIR="${LIBXML2_INCLUDE_DIR}" \
@@ -79,8 +81,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" \
   -DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
-  -DLLDB_PYTHON_RELATIVE_PATH="lib/python${PYTHON_VERSION}/site-packages" \
-  -DLLDB_PYTHON_EXE_RELATIVE_PATH="bin/python${PYTHON_VERSION}"
+  -DLLDB_PYTHON_RELATIVE_PATH="lib/python"
 
 pushd "${OUT_DIR}"
 echo "Building and installing specific host tools"
@@ -89,55 +90,31 @@ time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp
 popd
 popd
 
-# Bundle Python runtime into the install directory so the package is self-contained.
-echo "Bundling Python runtime..."
-PYTHON_VER="${PYTHON_VERSION}"
-PYTHON_STDLIB=$("${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('stdlib'))")
-PYTHON_PLATSTDLIB=$("${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_path('platstdlib'))")
-
-# Copy Python shared library
-mkdir -p "${INSTALL_DIR}/lib"
-PYTHON_LIBDIR=$("${PYTHON_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
-for f in "${PYTHON_LIBDIR}"/libpython"${PYTHON_VER}"*.dylib; do
-  if [ -f "$f" ]; then
-    cp -L "$f" "${INSTALL_DIR}/lib/"
-  fi
-done
-
-# Copy Python stdlib
-mkdir -p "${INSTALL_DIR}/lib/python${PYTHON_VER}"
-cp -rn "${PYTHON_STDLIB}/"* "${INSTALL_DIR}/lib/python${PYTHON_VER}/" 2>/dev/null || true
-# Copy lib-dynload (platform-specific .so modules)
-if [ -d "${PYTHON_PLATSTDLIB}/lib-dynload" ]; then
-  cp -rn "${PYTHON_PLATSTDLIB}/lib-dynload" "${INSTALL_DIR}/lib/python${PYTHON_VER}/" 2>/dev/null || true
-fi
-
-# Copy Python binary
-cp -L "${PYTHON_EXECUTABLE}" "${INSTALL_DIR}/bin/python3"
-ln -sf python3 "${INSTALL_DIR}/bin/python${PYTHON_VER}"
-echo "Python runtime bundled successfully."
-
-# Fix library paths so the package is relocatable.
-# liblldb.dylib links against the absolute build-time Python path (e.g.
-# /opt/homebrew/.../Python.framework/.../Python). Rewrite it to use
-# @loader_path so it finds our bundled libpython instead.
-echo "Fixing library install names..."
-PYTHON_LIBNAME="libpython${PYTHON_VER}.dylib"
+# Consumers provide Python 3.11 through PYTHONHOME and DYLD_LIBRARY_PATH.
+# Replace the build-machine path with a relocatable loader reference.
+echo "Fixing external Python library path..."
 OLD_PYTHON_PATH=$(otool -L "${INSTALL_DIR}/lib/liblldb.dylib" | grep -i python | awk '{print $1}')
-if [ -n "${OLD_PYTHON_PATH}" ]; then
-  install_name_tool -change "${OLD_PYTHON_PATH}" "@loader_path/${PYTHON_LIBNAME}" "${INSTALL_DIR}/lib/liblldb.dylib"
-fi
-install_name_tool -id "@loader_path/${PYTHON_LIBNAME}" "${INSTALL_DIR}/lib/${PYTHON_LIBNAME}"
+test -n "${OLD_PYTHON_PATH}"
+install_name_tool -change "${OLD_PYTHON_PATH}" \
+  "@rpath/libpython3.11.dylib" "${INSTALL_DIR}/lib/liblldb.dylib"
 
 # Re-codesign everything. macOS kills binaries with invalid signatures,
 # and install_name_tool / strip both invalidate them.
 echo "Re-signing binaries..."
-codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/lldb-server "${INSTALL_DIR}"/bin/python3
-codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib "${INSTALL_DIR}/lib/${PYTHON_LIBNAME}"
+codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/lldb-server
+codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib
 
-VERSION_OUTPUT=$("${INSTALL_DIR}/bin/lldb" -b -o "version --verbose")
+VERSION_OUTPUT=$( \
+  PYTHONHOME="${PYTHON_PREFIX}" \
+  DYLD_LIBRARY_PATH="${PYTHON_LIBDIR}" \
+  "${INSTALL_DIR}/bin/lldb" -b \
+    -o "version --verbose" \
+    -o "script import lldb; print(lldb.SBDebugger.GetVersionString())" \
+)
 echo "${VERSION_OUTPUT}"
 grep -q "xml: yes" <<<"${VERSION_OUTPUT}"
+test ! -e "${INSTALL_DIR}/bin/python3"
+test ! -e "${INSTALL_DIR}/lib/libpython3.11.dylib"
 echo "Done."
 
 echo ""
