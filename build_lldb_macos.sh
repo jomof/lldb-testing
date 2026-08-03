@@ -90,16 +90,8 @@ time "${NINJA}" install-lldb-stripped install-lldb-dap-stripped install-lldb-mcp
 popd
 popd
 
-# Consumers provide Python 3.11 through PYTHONHOME and DYLD_LIBRARY_PATH.
-# Replace the build-machine path with a relocatable loader reference.
-echo "Fixing external Python library path..."
-OLD_PYTHON_PATH=$(otool -L "${INSTALL_DIR}/lib/liblldb.dylib" | grep -i python | awk '{print $1}')
-test -n "${OLD_PYTHON_PATH}"
-install_name_tool -change "${OLD_PYTHON_PATH}" \
-  "@rpath/libpython3.11.dylib" "${INSTALL_DIR}/lib/liblldb.dylib"
-
 # Re-codesign everything. macOS kills binaries with invalid signatures,
-# and install_name_tool / strip both invalidate them.
+# and stripping invalidates them.
 echo "Re-signing binaries..."
 codesign --force --sign - "${INSTALL_DIR}"/bin/lldb "${INSTALL_DIR}"/bin/lldb-dap "${INSTALL_DIR}"/bin/lldb-mcp "${INSTALL_DIR}"/bin/lldb-server
 codesign --force --sign - "${INSTALL_DIR}"/lib/liblldb*.dylib
