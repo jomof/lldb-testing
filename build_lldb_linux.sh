@@ -94,6 +94,7 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DCMAKE_CXX_COMPILER="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
   -DLLVM_ENABLE_LIBCXX=ON \
   -DLLVM_STATIC_LINK_CXX_STDLIB=ON \
+  -DCMAKE_CXX_STANDARD_LIBRARIES="-lgcc_s -lgcc" \
   -DCMAKE_C_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
   -DCMAKE_CXX_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
   -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib ${PREBUILTS_DIR}/ncurses/lib/libtinfow.a" \
