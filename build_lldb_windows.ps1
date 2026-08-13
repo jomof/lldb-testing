@@ -124,6 +124,47 @@ if (!(Test-Path $LibXmlLibrary)) {
   Remove-Item -Force $LibXmlArchive
 }
 
+$ZstdVersion = "1.5.7"
+$ZstdSha256 = "eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3"
+$ZstdDir = Join-Path $BuildDir "zstd"
+$ZstdLibrary = Join-Path $ZstdDir "lib\zstd_static.lib"
+if (!(Test-Path $ZstdLibrary)) {
+  Write-Host "Building pinned static zstd..."
+
+  $ZstdArchive = Join-Path $BuildDir "zstd-$ZstdVersion.tar.gz"
+  $ZstdSourceDir = Join-Path $BuildDir "zstd-$ZstdVersion"
+  $ZstdBuildDir = Join-Path $BuildDir "zstd-build"
+  Invoke-WebRequest `
+    -Uri "https://github.com/facebook/zstd/releases/download/v$ZstdVersion/zstd-$ZstdVersion.tar.gz" `
+    -OutFile $ZstdArchive
+  $ActualHash = (Get-FileHash -Algorithm SHA256 $ZstdArchive).Hash.ToLowerInvariant()
+  if ($ActualHash -ne $ZstdSha256) {
+    throw "Unexpected zstd archive checksum: $ActualHash"
+  }
+
+  tar -xzf $ZstdArchive -C $BuildDir
+  if ($LASTEXITCODE -ne 0) { throw "Failed to extract zstd" }
+
+  & $CMake (Join-Path $ZstdSourceDir "build\cmake") -G "NMake Makefiles" `
+    -B $ZstdBuildDir `
+    -DCMAKE_BUILD_TYPE=Release `
+    "-DCMAKE_INSTALL_PREFIX=$ZstdDir" `
+    -DZSTD_BUILD_SHARED=OFF `
+    -DZSTD_BUILD_STATIC=ON `
+    -DZSTD_BUILD_PROGRAMS=OFF `
+    -DZSTD_BUILD_TESTS=OFF
+  if ($LASTEXITCODE -ne 0) { throw "CMake for zstd failed" }
+
+  Push-Location $ZstdBuildDir
+  nmake /NOLOGO /S install
+  if ($LASTEXITCODE -ne 0) { throw "Building zstd failed" }
+  Pop-Location
+  if (!(Test-Path $ZstdLibrary)) { throw "zstd_static.lib not found after install" }
+
+  Remove-Item -Recurse -Force $ZstdBuildDir, $ZstdSourceDir
+  Remove-Item -Force $ZstdArchive
+}
+
 # Run CMake
 # Python 3.11 is set up by the GitHub Action and is in PATH
 & $CMake ../llvm-project/llvm -G Ninja `
@@ -148,7 +189,11 @@ if (!(Test-Path $LibXmlLibrary)) {
   "-DLIBXML2_INCLUDE_DIR=$LibXmlDir\include\libxml2" `
   "-DLIBXML2_LIBRARY=$LibXmlLibrary" `
   "-DLIBXML2_LIBRARIES=$LibXmlLibrary" `
-  -DLLVM_ENABLE_ZSTD=OFF `
+  -DLLVM_ENABLE_ZSTD=ON `
+  -DLLVM_USE_STATIC_ZSTD=ON `
+  "-Dzstd_INCLUDE_DIR=$ZstdDir\include" `
+  "-Dzstd_LIBRARY=$ZstdLibrary" `
+  "-Dzstd_STATIC_LIBRARY=$ZstdLibrary" `
   -DLLDB_INCLUDE_TESTS=OFF `
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" `
   -DLLDB_ENABLE_LZMA=ON `

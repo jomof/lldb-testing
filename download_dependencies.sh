@@ -170,4 +170,38 @@ if [[ ! -f "${LIBXML2_DIR}/lib/libxml2.a" ]]; then
     "${LIBXML2_ARCHIVE}"
 fi
 
+# Build a pinned static zstd for the glibc 2.17 host package.
+ZSTD_VERSION="1.5.7"
+ZSTD_SHA256="eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3"
+ZSTD_DIR="${PREBUILTS_DIR}/zstd"
+if [[ ! -f "${ZSTD_DIR}/lib/libzstd.a" ]]; then
+  echo "Downloading and building static zstd..."
+  ZSTD_ARCHIVE="zstd-${ZSTD_VERSION}.tar.gz"
+  wget --progress=dot:giga \
+    "https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/${ZSTD_ARCHIVE}"
+  echo "${ZSTD_SHA256}  ${ZSTD_ARCHIVE}" | sha256sum --check
+  tar -xzf "${ZSTD_ARCHIVE}"
+
+  ZSTD_BUILD_DIR="${PREBUILTS_DIR}/zstd-build"
+  "${CMAKE_DIR}/bin/cmake" "zstd-${ZSTD_VERSION}/build/cmake" \
+    -G "Unix Makefiles" \
+    -B "${ZSTD_BUILD_DIR}" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${ZSTD_DIR}" \
+    -DCMAKE_C_COMPILER="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang" \
+    -DCMAKE_CXX_COMPILER="${PREBUILTS_DIR}/clang/clang-r536225/bin/clang++" \
+    -DCMAKE_C_FLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8" \
+    -DCMAKE_CXX_FLAGS="--target=x86_64-linux -fPIC --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++" \
+    -DCMAKE_EXE_LINKER_FLAGS="--target=x86_64-linux --sysroot=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8/sysroot --gcc-toolchain=${PREBUILTS_DIR}/gcc/x86_64-linux-glibc2.17-4.8 -stdlib=libc++ -L${PREBUILTS_DIR}/clang/clang-r536225/lib" \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DZSTD_BUILD_SHARED=OFF \
+    -DZSTD_BUILD_STATIC=ON \
+    -DZSTD_BUILD_PROGRAMS=OFF \
+    -DZSTD_BUILD_TESTS=OFF
+
+  make -C "${ZSTD_BUILD_DIR}" -j"$(nproc)" install
+  rm -rf "${ZSTD_BUILD_DIR}" "zstd-${ZSTD_VERSION}" \
+    "${ZSTD_ARCHIVE}"
+fi
+
 popd

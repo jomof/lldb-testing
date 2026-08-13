@@ -32,6 +32,7 @@ mkdir -p "${INSTALL_DIR}"
 XZ_DIR="${PREBUILTS_DIR}/xz"
 XZ_SRC_DIR="${SCRIPT_DIR}/xz"
 LIBXML2_DIR="${PREBUILTS_DIR}/libxml2"
+ZSTD_DIR="${PREBUILTS_DIR}/zstd"
 if [[ ! -d "${XZ_DIR}/lib" ]]; then
   echo "Building static xz from submodule..."
   mkdir -p xz-build
@@ -85,7 +86,11 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLIBXML2_INCLUDE_DIR="${LIBXML2_DIR}/include/libxml2" \
   -DLIBXML2_LIBRARY="${LIBXML2_DIR}/lib/libxml2.a" \
   -DLIBXML2_LIBRARIES="${LIBXML2_DIR}/lib/libxml2.a" \
-  -DLLVM_ENABLE_ZSTD=OFF \
+  -DLLVM_ENABLE_ZSTD=ON \
+  -DLLVM_USE_STATIC_ZSTD=ON \
+  -Dzstd_INCLUDE_DIR="${ZSTD_DIR}/include" \
+  -Dzstd_LIBRARY="${ZSTD_DIR}/lib/libzstd.a" \
+  -Dzstd_STATIC_LIBRARY="${ZSTD_DIR}/lib/libzstd.a" \
   -DLLDB_INCLUDE_TESTS=OFF \
   -DLLVM_TARGETS_TO_BUILD="X86;AArch64;ARM;RISCV" \
   -DLLVM_HOST_TRIPLE="x86_64-unknown-linux-gnu" \

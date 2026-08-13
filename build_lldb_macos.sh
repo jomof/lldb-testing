@@ -50,6 +50,35 @@ if [[ ! -d "${XZ_DIR}/lib" ]]; then
   rm -rf "${BUILD_DIR}/xz-build"
 fi
 
+ZSTD_VERSION="1.5.7"
+ZSTD_SHA256="eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3"
+ZSTD_DIR="${BUILD_DIR}/zstd"
+if [[ ! -d "${ZSTD_DIR}/lib" ]]; then
+  echo "Building static zstd for macOS..."
+  mkdir -p "${BUILD_DIR}/zstd-build"
+  ZSTD_ARCHIVE="${BUILD_DIR}/zstd-${ZSTD_VERSION}.tar.gz"
+  curl -sSL "https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSION}/zstd-${ZSTD_VERSION}.tar.gz" -o "${ZSTD_ARCHIVE}"
+  if command -v shasum >/dev/null 2>&1; then
+    echo "${ZSTD_SHA256}  ${ZSTD_ARCHIVE}" | shasum -a 256 --check
+  else
+    echo "${ZSTD_SHA256}  ${ZSTD_ARCHIVE}" | sha256sum --check
+  fi
+  tar -xzf "${ZSTD_ARCHIVE}" -C "${BUILD_DIR}"
+
+  $CMAKE "${BUILD_DIR}/zstd-${ZSTD_VERSION}/build/cmake" -G "Unix Makefiles" \
+    -B "${BUILD_DIR}/zstd-build" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${ZSTD_DIR}" \
+    -DZSTD_BUILD_SHARED=OFF \
+    -DZSTD_BUILD_STATIC=ON \
+    -DZSTD_BUILD_PROGRAMS=OFF \
+    -DZSTD_BUILD_TESTS=OFF \
+    -DCMAKE_OSX_ARCHITECTURES="${MACOS_ARCH}"
+
+  make -C "${BUILD_DIR}/zstd-build" install
+  rm -rf "${BUILD_DIR}/zstd-build" "${BUILD_DIR}/zstd-${ZSTD_VERSION}" "${ZSTD_ARCHIVE}"
+fi
+
 pushd "${BUILD_DIR}"
 $CMAKE ../llvm-project/llvm -G Ninja \
   -B "${OUT_DIR}" \
@@ -71,7 +100,11 @@ $CMAKE ../llvm-project/llvm -G Ninja \
   -DLIBXML2_INCLUDE_DIR="${LIBXML2_INCLUDE_DIR}" \
   -DLIBXML2_LIBRARY="${LIBXML2_LIBRARY}" \
   -DLIBXML2_LIBRARIES="${LIBXML2_LIBRARY}" \
-  -DLLVM_ENABLE_ZSTD=OFF \
+  -DLLVM_ENABLE_ZSTD=ON \
+  -DLLVM_USE_STATIC_ZSTD=ON \
+  -Dzstd_INCLUDE_DIR="${ZSTD_DIR}/include" \
+  -Dzstd_LIBRARY="${ZSTD_DIR}/lib/libzstd.a" \
+  -Dzstd_STATIC_LIBRARY="${ZSTD_DIR}/lib/libzstd.a" \
   -DLLDB_INCLUDE_TESTS=OFF \
   -DLLDB_ENABLE_LZMA=ON \
   -DLIBLZMA_INCLUDE_DIR="${XZ_DIR}/include" \
